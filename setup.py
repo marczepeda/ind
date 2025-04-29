@@ -34,6 +34,7 @@ setup(
                       'scipy',
                       'statsmodels',
                       'scikit-learn',
-                      'adjustText'],
+                      'adjustText',
+                      'openbb'],
     python_requires='>=3.11'
 )

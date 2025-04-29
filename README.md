@@ -16,13 +16,16 @@
     - Linux: https://docs.anaconda.com/anaconda/install/linux/
 2. Download Git: https://github.com/git-guides/install-git
     - Check using command line terminal: git version
+3. Download openBB: https://docs.openbb.co/platform/installation
+    - Register for an account and sign in.
+    - Mac/Windows: https://my.openbb.co/app/platform/downloads
 4. Make environment: write the following in a command line terminal...
     ```shell
     cd ~
-    conda create --name ind_env python=3.11.5
+    conda create --name ind python=3.12.2
     # When conda asks you to proceed, type "y"
     
-    conda activate ind_env
+    conda activate ind
     mkdir git
     cd git
     ```
@@ -30,12 +33,11 @@
     ```shell
     conda install pip
     
-    pip install -U scikit-learn
-    # Also, installs numpy, pandas, matplotlib, seaborn, scipy.
+    pip install -U scikit-learn # Also, installs numpy, pandas, matplotlib, seaborn, scipy.
     
     conda install -c conda-forge statsmodels
     conda install conda-forge::adjusttext
-    conda install anaconda::git
+    conda install -c conda-forge git
     ```
 6. Install ind: write the following in a command line terminal...
     ```shell
@@ -51,7 +53,7 @@
     ```shell
     cd ~
     cd git
-    conda activate ind_env
+    conda activate ind
     pip uninstall ind
     # Enter 'Y' when prompted
     
