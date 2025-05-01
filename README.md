@@ -36,6 +36,7 @@
     pip install -U scikit-learn # Also, installs numpy, pandas, matplotlib, seaborn, scipy.
     
     conda install -c conda-forge statsmodels
+    conda install anaconda::requests
     conda install conda-forge::adjusttext
     conda install -c conda-forge git
     ```
