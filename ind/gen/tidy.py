@@ -10,6 +10,8 @@ Usage:
 - zip_cols(): returns zip(dataframe[cols[0]],dataframe[cols[1]],...) for tuple loops
 - missing_cols(): returns values from a list if they are not dataframe columns
 - merge(): adds metadata columns to data dataframe using metadata dataframe
+- shared_group(): group rows with shared values in a column, consolidate unique values from other columns into lists, & append to the original dataframe.
+- unique_tuples(): returns a list of unique tuples of value(s) from a dataframe column(s) in order
 
 [Dictionary methods]
 - filter_kwargs(): filter **kwargs by specified keywords
@@ -94,6 +96,50 @@ def merge(data: pd.DataFrame, meta: pd.DataFrame, id, cols: list):
             data[c] = [id_c[i] for i in data[id[0]]]
     else: print("Error: id needs to be string or list of 2 strings")
     return data
+
+def shared_group(df: pd.DataFrame, shared: str, group: list | str, suffixes = ('','_list')) -> pd.DataFrame:
+    """
+    shared_group(): group rows with shared values in a column, consolidate unique values from other columns into lists, & append to the original dataframe.
+
+    Parameters:
+    df (dataframe): Input pandas DataFrame.
+    shared (str): name of column to group by shared values.
+    group (list | str): list of other columns that will have unique values grouped that share common values.
+    suffixes (tuple, optional): Tuple of suffixes to apply to the columns in the output DataFrame (Default is ('','_list')).
+    """
+    return pd.merge(left=df, 
+                    right=df.groupby(shared)[group].agg(lambda x: list(pd.unique(x))).reset_index(), 
+                    on=shared, 
+                    how='left', 
+                    suffixes=suffixes)
+
+def unique_tuples(df: pd.DataFrame, cols: list | str):
+    ''' 
+    unique_tuples(): returns a list of unique tuples of value(s) from a dataframe column(s) in order
+    
+    Parameters:
+    df (dataframe): pandas dataframe
+    cols (list | str): column name(s) to get unique pairs from
+    
+    Dependencies: pandas
+    '''
+    if type(cols)==str: cols=[cols]
+    return list(df[cols].drop_duplicates().itertuples(index=False, name=None))
+
+def vcs_ordered(df: pd.DataFrame, cols: list | str):
+    ''' 
+    vcs_ordered(): returns dataframe.value_counts() in order
+    
+    Parameters:
+    df (dataframe): pandas dataframe
+    cols (list | str): column name(s) to get unique values from
+    
+    Dependencies: pandas
+    '''
+    if type(cols)==str: cols=[cols]
+    vcs = df[cols].value_counts() # Get value counts
+    order = unique_tuples(df=df, cols=cols) # Get unique tuples
+    return pd.Series([vcs[pair] for pair in order], index=order)
 
 # Dictionary methods
 def filter_kwargs(keywords: list, **kwargs):

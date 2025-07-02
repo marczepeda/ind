@@ -9,6 +9,7 @@ Usage:
 - try_parse(): try to parse a string as a Python literal; if not possible, return the original value
 - recursive_parse(): recursively parse nested structures
 - df_try_parse(): apply try_parse() to dataframe columns and return dataframe
+- recursive_json_decode(): recursively decode JSON strings in a nested structure
 
 [Input]
 - get(): returns pandas dataframe from a file
@@ -23,8 +24,12 @@ Usage:
 - excel_csvs(): exports excel file to .csv files in specified directory
 - df_to_dc_txt(): returns pandas DataFrame as a printed text that resembles a Python dictionary
 - dc_txt_to_df(): returns a pandas DataFrame from text that resembles a Python dictionary
-- echo(): write message to slurm output file using echo
+- in_subs(): moves all files with a given suffix into subfolders named after the files (excluding the suffix).
+- out_subs(): delete subdirectories and move their files to the parent directory
+
+[Directory Methods]
 - print_relative_paths(): prints relative paths for all files in a directory including subfolders
+- sorted_file_names: returns sorted file names in a directory with the specified suffix
 '''
 
 # Import packages
@@ -32,7 +37,11 @@ import pandas as pd
 import os
 import ast
 import csv
-import subprocess
+import shutil
+import datetime
+import json
+
+from .. import config
 
 # Parsing Python literals
 def try_parse(value):
@@ -88,6 +97,27 @@ def df_try_parse(df: pd.DataFrame):
     for col in df.columns:
         df[col] = df[col].apply(try_parse)
     return df
+
+def recursive_json_decode(obj):
+    '''
+    recursive_json_decode(): recursively decode JSON strings in a nested structure
+
+    Parameters:
+    obj: object of any type (looking for dict, list, or str)
+    
+    Dependencies: json
+    '''
+    if isinstance(obj, dict):
+        return {k: recursive_json_decode(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [recursive_json_decode(item) for item in obj]
+    elif isinstance(obj, str):
+        try:
+            decoded = json.loads(obj)
+            return recursive_json_decode(decoded)
+        except (json.JSONDecodeError, TypeError):
+            return obj
+    return obj
 
 # Input
 def get(pt: str,literal_eval=False,**kwargs):
@@ -201,18 +231,18 @@ def save(dir: str, file: str, obj, cols=[], id=False, sort=True, **kwargs):
                 df.to_excel(writer,sheet_name=key,index=id) # Dataframe per sheet
     else: raise ValueError(f'save() does not work for {type(obj)} objects with {file.split(".")[-1]} files.')
 
-def save_dir(dir: str, file_suffix: str, dc: dict, **kwargs):
+def save_dir(dir: str, suf: str, dc: dict, **kwargs):
     ''' 
     save_dir(): save .csv files to a specified output directory from dictionary of objs
     
     Parameters:
     dir (str): output directory path
-    file_suffix (str): file name suffix
+    suf (str): file name suffix
     dc (dict): dictionary of objects (files)
 
     Dependencies: pandas, os, csv, & save()
     '''
-    for key,val in dc.items(): save(dir=dir,file=key+file_suffix,obj=val,**kwargs)
+    for key,val in dc.items(): save(dir=dir,file=key+suf,obj=val,**kwargs)
 
 # Input/Output
 def excel_csvs(pt: str,dir='',**kwargs):
@@ -266,20 +296,62 @@ def dc_txt_to_df(dc_txt: str, transpose=True):
     if transpose==True: return pd.DataFrame(ast.literal_eval(dc_txt)).T
     else: return pd.DataFrame(ast.literal_eval(dc_txt))
 
-def echo(message: str):
-    """
-    echo(): write message to slurm output file using echo
+def in_subs(dir: str, suf: str): 
+    '''
+    in_subs: moves all files with a given suffix into subdirectory named after the files (excluding the suffix).
 
     Parameters:
-    message (str): text that will be written to slurm output file.
+    dir (str): Path to the directory containing the files.
+    suf (str): File suffix (e.g., '.txt', '.csv') to filter files.
 
-    Dependencies: subprocess
+    Dependences: os, shutil
+    '''
+    if not os.path.isdir(dir):
+        raise ValueError(f"{dir} is not a valid directory.")
+
+    for filename in os.listdir(dir):
+        file_path = os.path.join(dir, filename)
+        
+        if os.path.isfile(file_path) and filename.endswith(suf):
+            base_name = filename[:-len(suf)]
+            subdir = os.path.join(dir, base_name)
+
+            # Create subfolder if it doesn't exist
+            os.makedirs(subdir, exist_ok=True) 
+
+            # Move the file into the subfolder
+            new_path = os.path.join(subdir, filename)
+            shutil.move(file_path, new_path)
+
+def out_subs(dir: str):
     """
-    try:
-        # Use subprocess to run `echo` and append the message to stdout
-        subprocess.run(['echo', message], check=True)
-    except Exception as e:
-        print(f"Failed to write message: {e}")
+    out_subs(): Delete subdirectories and move their files to the parent directory.
+
+    Parameters:
+    dir (str): Path to the directory containing the files.
+    """
+    if not os.path.isdir(dir):
+        raise ValueError(f"{dir} is not a valid directory.")
+
+    for root, dirs, files in os.walk(dir, topdown=False):
+        for file in files:
+            file_path = os.path.join(root, file)
+            target_path = os.path.join(dir, file)
+
+            # Resolve name conflicts by appending a counter
+            base, ext = os.path.splitext(file)
+            counter = 1
+            while os.path.exists(target_path):
+                target_path = os.path.join(dir, f"{base}_{counter}{ext}")
+                counter += 1
+
+            shutil.move(file_path, target_path)
+
+        # Remove empty directories
+        for dir in dirs:
+            dir_path = os.path.join(root, dir)
+            if os.path.isdir(dir_path) and not os.listdir(dir_path):
+                os.rmdir(dir_path)
 
 # Directory Methods
 def print_relative_paths(root_dir: str):
@@ -296,3 +368,14 @@ def print_relative_paths(root_dir: str):
             # Get the relative path of the file
             relative_path = os.path.relpath(os.path.join(dirpath, filename), root_dir)
             print(relative_path)
+
+def sorted_file_names(dir: str, suf: str='.csv'):
+    '''
+    sorted_file_names: returns sorted file names in a directory with the specified suffix
+
+    dir (str): directory path or relative path
+    suf (str): suffix to parse file names
+
+    Dependencies: os
+    '''
+    return sorted([file for file in os.listdir(dir) if file[-len(suf):]==suf])

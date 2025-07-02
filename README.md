@@ -40,7 +40,7 @@
     cd git
     conda activate ind
     pip uninstall ind # Enter 'Y' when prompted
-    rm -r ind # Enter 'Y' three times to completely remove the folder
+    rm -rf ind
     ```
 2. Clone ind from github and install ind:
     ```shell

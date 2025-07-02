@@ -18,9 +18,14 @@ Usage:
 '''
 # Import packages
 import argparse
+import ast
+import datetime
+
+from . import config
 
 from .gen import plot as p
 from .gen import stat as st
+from .gen import io
 
 # Supporting methods
 '''
@@ -39,8 +44,8 @@ def add_common_plot_scat_args(subparser):
     subparser.add_argument("--cols_exclude", nargs="+", help="Columns to exclude")
     subparser.add_argument("--stys", type=str, help="Style column name")
 
-    subparser.add_argument("--dir", help="Output directory path", type=str, default='.')
-    subparser.add_argument("--file", help="Output file name", type=str, required=False, default='plot_scat.png')
+    subparser.add_argument("--dir", help="Output directory path", type=str, default='./out')
+    subparser.add_argument("--file", help="Output file name", type=str, required=False, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_scat.png')
     subparser.add_argument("--palette_or_cmap", type=str, default="colorblind", help="Color palette or colormap")
     subparser.add_argument("--edgecol", type=str, default="black", help="Edge color")
 
@@ -101,8 +106,8 @@ def add_common_plot_cat_args(subparser):
     subparser.add_argument("--cols_ord", nargs="+", help="Custom order for color values")
     subparser.add_argument("--cols_exclude", nargs="+", help="Values to exclude from color column")
 
-    subparser.add_argument("--file", type=str, help="Output filename")
-    subparser.add_argument("--dir", type=str, help="Output directory path")
+    subparser.add_argument("--file", type=str, help="Output filename", default='./out')
+    subparser.add_argument("--dir", type=str, help="Output directory path", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_cat.png')
     subparser.add_argument("--palette_or_cmap", type=str, default="colorblind", help="Color palette or colormap")
     subparser.add_argument("--edgecol", type=str, default="black", help="Edge color")
 
@@ -162,7 +167,11 @@ def add_common_plot_dist_args(subparser):
     # dist(): Required argument
     subparser.add_argument("--df", help="Input file", type=str, required=True)
     subparser.add_argument("--x", type=str, help="X-axis column", required=True)
-
+    
+    # File output
+    subparser.add_argument("--dir", type=str, help="Output directory", default='./out')
+    subparser.add_argument("--file", type=str, help="Output file name", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_dist.png')
+    
     # Optional core arguments
     subparser.add_argument("--cols", type=str, help="Color column")
     subparser.add_argument("--cols_ord", nargs="+", help="Custom color order")
@@ -179,10 +188,6 @@ def add_common_plot_dist_args(subparser):
     subparser.add_argument("--tp", type=float, default=0.8, help="Top padding")
     subparser.add_argument("--hs", type=int, default=0, help="Hspace between plots")
     subparser.add_argument("--des", action="store_true", help="Remove plot spines (despine)")
-
-    # File output
-    subparser.add_argument("--file", type=str, help="Output file name")
-    subparser.add_argument("--dir", type=str, help="Output directory")
 
     # Figure appearance
     subparser.add_argument("--figsize", nargs=2, type=int, default=(10, 6), help="Figure size (width height)")
@@ -241,8 +246,8 @@ def add_common_plot_heat_args(subparser):
     subparser.add_argument("--vals", type=str, help="Value column name to split tidy-formatted dataframe into a dictionary pivot-formatted dataframes")
     subparser.add_argument("--vals_dims", nargs=2, type=float, help="Min/max for values (vmin vmax)")
 
-    subparser.add_argument("--file", type=str, help="Output filename")
-    subparser.add_argument("--dir", type=str, help="Output directory path")
+    subparser.add_argument("--dir", type=str, help="Output directory path", default='./out')
+    subparser.add_argument("--file", type=str, help="Output filename", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_heat.png')
     subparser.add_argument("--edgecol", type=str, default="black", help="Edge color")
     subparser.add_argument("--lw", type=int, default=1, help="Line width")
 
@@ -290,14 +295,13 @@ def add_common_plot_stack_args(subparser):
     subparser.add_argument("--cols", type=str, help="Color column")
 
     # Optional parameters
+    subparser.add_argument("--dir", type=str, help="Output directory path", default='./out')
+    subparser.add_argument("--file", type=str, help="Output filename", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_stack.png')
+    
     subparser.add_argument("--cutoff", type=float, default=0, help="Minimum value cutoff for stacking")
     subparser.add_argument("--cols_ord", nargs="+", help="Color column value order")
     subparser.add_argument("--x_ord", nargs="+", help="X-axis value order")
-
-    subparser.add_argument("--file", type=str, help="Output filename")
-    subparser.add_argument("--dir", type=str, help="Output directory path")
     subparser.add_argument("--cmap", type=str, default="Set2", help="Colormap")
-
     subparser.add_argument("--errcap", type=int, default=4, help="Error bar cap width")
     subparser.add_argument("--vertical", action="store_true", help="Stack bars vertically (default True)")
 
@@ -358,9 +362,9 @@ def add_common_plot_vol_args(subparser):
     subparser.add_argument("--pval_threshold", type=float, default=0.05, help="P-value threshold")
 
     # Output
-    subparser.add_argument("--file", type=str, help="Output file name")
-    subparser.add_argument("--dir", type=str, help="Output directory path")
-
+    subparser.add_argument("--dir", type=str, help="Output directory path", default='./out')
+    subparser.add_argument("--file", type=str, help="Output file name", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_vol.png')
+    
     # Aesthetics
     subparser.add_argument("--color", type=str, default="lightgray", help="Color for nonsignificant values")
     subparser.add_argument("--alpha", type=float, default=0.5, help="Transparency for nonsignificant values")
@@ -420,6 +424,30 @@ def main():
     # Add parser and subparsers
     parser = argparse.ArgumentParser(description="Investigation New Drug (IND) Application", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers()
+
+    '''
+    ind.config:
+    - get_info: Retrieve information based on id
+    - set_info: Set information based on id
+    '''
+    parser_config = subparsers.add_parser("config", help="Configuration")
+    subparsers_config = parser_config.add_subparsers()
+
+    # get_info(): Retrieve information based on id
+    # set_info(): Set information based on id
+    parser_config_get_info = subparsers_config.add_parser("get", help="Retrieve information based on id")
+    parser_config_set_info = subparsers_config.add_parser("set", help="Set information based on id")
+    
+    # get_info() arguments
+    parser_config_get_info.add_argument("--id", type=str, help="Identifier from/for configuration file")
+    
+    # set_info() arguments
+    parser_config_set_info.add_argument("--id", type=str, help="Identifier from/for configuration file", required=True)
+    parser_config_set_info.add_argument("--info", type=ast.literal_eval, help="Information for configuration file (str or dict)", required=True)
+    
+    # default functions
+    parser_config_get_info.set_defaults(func=config.get_info)
+    parser_config_set_info.set_defaults(func=config.set_info)
 
     '''
     ind.gen.plot:
@@ -498,8 +526,8 @@ def main():
 
     parser_stat_describe.add_argument("--df", type=str, help="Input file path", required=True)
 
-    parser_stat_describe.add_argument("--dir", type=str, help="Output directory",default='.')
-    parser_stat_describe.add_argument("--file", type=str, help="Output file name",default='descriptive.csv')
+    parser_stat_describe.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_describe.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_descriptive.csv')
     
     parser_stat_describe.add_argument("--cols", nargs="+", help="List of numerical columns to describe")
     parser_stat_describe.add_argument("--group", type=str, help="Column name to group by")
@@ -514,8 +542,8 @@ def main():
     parser_stat_difference.add_argument("--compare_col", type=str, help="Name of column used for grouping/comparisons",required=True)
     parser_stat_difference.add_argument("--compare", nargs="+", help="List of groups to compare (e.g. A B)",required=True)
 
-    parser_stat_difference.add_argument("--dir", type=str, help="Output directory",default='.')
-    parser_stat_difference.add_argument("--file", type=str, help="Output file name",default='difference.csv')
+    parser_stat_difference.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_difference.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_difference.csv')
 
     parser_stat_difference.add_argument("--same", action="store_true", help="Same subjects (paired test)")
     parser_stat_difference.add_argument("--para", action="store_true", help="Use parametric test (default: True)")
@@ -530,8 +558,8 @@ def main():
 
     parser_stat_correlation.add_argument("--df", type=str, help="Input file path",required=True)
 
-    parser_stat_correlation.add_argument("--dir", type=str, help="Output directory",default='.')
-    parser_stat_correlation.add_argument("--file", type=str, help="Output file name",default='correlation.csv')
+    parser_stat_correlation.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_correlation.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_correlation.csv')
 
     parser_stat_correlation.add_argument("--var_cols", nargs="+", help="List of 2 variable columns for tidy format")
     parser_stat_correlation.add_argument("--value_cols", nargs="+", help="List of numerical columns to correlate")
@@ -552,10 +580,33 @@ def main():
     parser_stat_compare.add_argument("--count", type=str, help="Count column name",required=True)
 
     parser_stat_compare.add_argument("--psuedocount", type=int, default=1, help="Pseudocount to avoid log(0) or divide-by-zero errors")
-    parser_stat_compare.add_argument("--dir", type=str, help="Output directory",default='.')
-    parser_stat_compare.add_argument("--file", type=str, help="Output file name",default='compare.csv')
+    parser_stat_compare.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_compare.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_compare.csv')
 
     parser_stat_compare.set_defaults(func=st.compare)
+
+    '''
+    ind.gen.io:
+    - in_subs(): moves all files with a given suffix into subfolders named after the files (excluding the suffix).
+    - out_subs(): recursively moves all files from subdirectories into the parent directory and delete the emptied subdirectories.
+    '''
+    parser_io = subparsers.add_parser("io", help="Input/Output")
+    subparsers_io = parser_io.add_subparsers()
+    
+    # Create subparsers for commands
+    parser_io_in_subs = subparsers_io.add_parser("in_subs", help="Moves all files with a given suffix into subfolders named after the files (excluding the suffix)")
+    parser_io_out_subs = subparsers_io.add_parser("out_subs", help="Delete subdirectories and move their files to the parent directory")
+    
+    # Add common arguments
+    for parser_io_common in [parser_io_in_subs,parser_io_out_subs]:
+        parser_io_common.add_argument("--dir", help="Path to parent directory", type=str, required=True)
+    
+    # in_subs() arguments
+    parser_io_in_subs.add_argument("--suf", help="File suffix (e.g., '.txt', '.csv') to filter files.", type=int, required=True) 
+    
+    # Call command functions
+    parser_io_in_subs.set_defaults(func=io.in_subs)
+    parser_io_out_subs.set_defaults(func=io.out_subs)
 
     # Parse all arguments
     args = parser.parse_args()
