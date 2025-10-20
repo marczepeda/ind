@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61", "setuptools-scm>=8", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ind"
+dynamic = ["version"]
+description = "Investigational New Drug (IND) Application"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Marcanthony Zepeda", email = "marczepeda18@gmail.com" }
+]
+
+dependencies = [
+  "numpy",
+  "matplotlib",
+  "seaborn",
+  "pandas",
+  "requests",
+  "scipy",
+  "statsmodels",
+  "scikit-learn",
+  "adjustText",
+  "argcomplete",
+  "rich",
+  "rich-argparse"
+]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent"
+]
+
+[project.scripts]
+ind = "ind.main:main"
+
+[project.urls]
+Homepage = "https://github.com/marczepeda/ind"
+Repository = "https://github.com/marczepeda/ind"
+Issues = "https://github.com/marczepeda/ind/issues"
+Documentation = "https://github.com/marczepeda/ind#readme"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"ind.resources" = ["*.csv"]
+"ind.scripts" = ["*.sh"]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+write_to = "src/ind/_version.py"

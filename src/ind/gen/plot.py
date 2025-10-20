@@ -13,6 +13,7 @@ Usage:
 - move_dis_legend(): moves legend for distribution graphs
 - extract_pivots(): returns a dictionary of pivot-formatted dataframes from tidy-formatted dataframe
 - formatter(): formats, displays, and saves plots
+- repeat_palette_cmap(): returns a list of a repeated seaborn palette or matplotlib color map
 
 [Graph methods]
 - scat(): creates scatter plot related graphs
@@ -34,22 +35,19 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 from adjustText import adjust_text
-from scipy.stats import ttest_ind
 from . import io
-from . import tidy as t
 
 # Supporting methods
-def re_un_cap(input: str):
+def re_un_cap(input: str) -> str:
     ''' 
     re_un_cap(): replace underscores with spaces and capitalizes each word for a given string
         
     Parameters:
     input (str): input string
-    
-    Dependencies:
     '''
     # Replace underscores with spaces
     input = input.replace('_', ' ')
@@ -67,7 +65,7 @@ def re_un_cap(input: str):
             capitalize_next = (char == ' ')
     return result
 
-def round_up_pow_10(number):
+def round_up_pow_10(number) -> int:
     ''' 
     round_up_pow_10(): rounds up a given number to the nearest power of 10
     
@@ -83,7 +81,7 @@ def round_up_pow_10(number):
     rounded = math.ceil(number / 10 ** exponent) * 10 ** exponent
     return rounded
 
-def round_down_pow_10(number):
+def round_down_pow_10(number) -> int:
     ''' 
     round_down_pow_10: rounds down a given number to the nearest power of 10
     
@@ -100,7 +98,7 @@ def round_down_pow_10(number):
     rounded = math.floor(number / 10 ** exponent) * 10 ** exponent  # Round down the number
     return rounded
 
-def log10(series):
+def log10(series) -> float:
     ''' 
     log10: returns log10 of maximum value from series or 0
     
@@ -110,7 +108,7 @@ def log10(series):
     '''
     return np.log10(np.maximum(series, 1))
 
-def move_dist_legend(ax, legend_loc: str,legend_title_size: int,legend_size: int, legend_bbox_to_anchor: tuple, legend_ncol: tuple):
+def move_dist_legend(ax, legend_loc: str,legend_title_size: int, legend_size: int, legend_bbox_to_anchor: tuple, legend_ncol: tuple):
     ''' 
     move_dis_legend(): moves legend for distribution graphs
     
@@ -126,13 +124,13 @@ def move_dist_legend(ax, legend_loc: str,legend_title_size: int,legend_size: int
     '''
     
     old_legend = ax.legend_
-    handles = old_legend.legendHandles
+    handles = old_legend.legend_handles
     labels = [t.get_text() for t in old_legend.get_texts()]
     title = old_legend.get_title().get_text()
     ax.legend(handles,labels,loc=legend_loc,bbox_to_anchor=legend_bbox_to_anchor,
               title=title,title_fontsize=legend_title_size,fontsize=legend_size,ncol=legend_ncol)
 
-def extract_pivots(df: pd.DataFrame, x: str, y: str, vars='variable', vals='value'):
+def extract_pivots(df: pd.DataFrame, x: str, y: str, vars: str='variable', vals: str='value') -> dict[pd.DataFrame]:
     ''' 
     extract_pivots(): returns a dictionary of pivot-formatted dataframes from tidy-formatted dataframe
     
@@ -262,13 +260,35 @@ def formatter(typ:str,ax,df:pd.DataFrame,x:str,y:str,cols:str,file:str,dir:str,p
         plt.savefig(fname=os.path.join(dir, file), dpi=600, bbox_inches='tight', format=f'{file.split(".")[-1]}')
     if show: plt.show()
 
+def repeat_palette_cmap(palette_or_cmap: str, repeats: int):
+    '''
+    repeat_palette_cmap(): returns a list of a repeated seaborn palette or matplotlib color map
+
+    Parameters:
+    palette_or_cmap (str): seaborn palette or matplotlib color map name
+    repeats (int): number of color map repeats
+    '''
+    # Check repeats is a positive integer
+    if not isinstance(repeats, int) or repeats <= 0:
+        raise ValueError(f"repeats={repeats} must be a positive integer.")
+    
+    if palette_or_cmap in sns.color_palette(): # Check if cmap is a valid seaborn color palette
+        cmap = sns.palettes.SEABORN_PALETTES[palette_or_cmap] # Get the color palette
+        return mcolors.ListedColormap(cmap * repeats) # Repeats the color palette
+    elif palette_or_cmap in plt.colormaps(): # Check if cmap is a valid matplotlib color map
+        cmap = cm.get_cmap(palette_or_cmap) # Get the color map
+        return mcolors.ListedColormap([cmap(i) for i in range(cmap.N)] * repeats) # Breaks the color map into a repeated list
+    else:
+        print(f'{cmap} is not a valid matplotlib color map and did not apply repeat.')
+        return cmap
+
 # Graph methods
-def scat(typ: str,df: pd.DataFrame | str,x: str,y: str,cols: str=None,cols_ord: list=None,stys: str=None,cols_exclude: list | str=None,
-         file: str=None,dir: str=None,palette_or_cmap='colorblind',edgecol='black',
-         figsize=(10,6),title='',title_size=18,title_weight='bold',title_font='Arial',
-         x_axis='',x_axis_size=12,x_axis_weight='bold',x_axis_font='Arial',x_axis_scale='linear',x_axis_dims=(0,0),x_ticks_rot=0,x_ticks_font='Arial',x_ticks=[],
-         y_axis='',y_axis_size=12,y_axis_weight='bold',y_axis_font='Arial',y_axis_scale='linear',y_axis_dims=(0,0),y_ticks_rot=0,y_ticks_font='Arial',y_ticks=[],
-         legend_title='',legend_title_size=12,legend_size=9,legend_bbox_to_anchor=(1,1),legend_loc='upper left',legend_items=(0,0),legend_ncol=1,show=True, space_capitalize=True, 
+def scat(typ: str, df: pd.DataFrame | str, x: str, y: str, cols: str=None, cols_ord: list=None, stys: str=None, cols_exclude: list | str=None,
+         file: str=None, dir: str=None, palette_or_cmap: str='colorblind', edgecol: str='black',
+         figsize: tuple=(10,6), title: str='', title_size: int=18, title_weight: str='bold', title_font: str='Arial',
+         x_axis: str='', x_axis_size: int=12, x_axis_weight: str='bold', x_axis_font: str='Arial', x_axis_scale: str='linear', x_axis_dims: tuple=(0,0), x_ticks_rot: int=0, x_ticks_font: str='Arial', x_ticks: list=[],
+         y_axis: str='', y_axis_size: int=12, y_axis_weight: str='bold', y_axis_font: str='Arial', y_axis_scale: str='linear', y_axis_dims: tuple=(0,0), y_ticks_rot: int=0, y_ticks_font: str='Arial', y_ticks: list=[],
+         legend_title: str='', legend_title_size: int=12, legend_size: int=9, legend_bbox_to_anchor: tuple=(1,1), legend_loc: str='upper left',legend_items: tuple=(0,0), legend_ncol: int=1, show: bool=True, space_capitalize: bool=True, 
          **kwargs):
     ''' 
     scat(): creates scatter plot related graphs
@@ -388,12 +408,12 @@ def scat(typ: str,df: pd.DataFrame | str,x: str,y: str,cols: str=None,cols_ord: 
               y_axis,y_axis_size,y_axis_weight,y_axis_font,y_axis_scale,y_axis_dims,y_ticks_rot,y_ticks_font,y_ticks,
               legend_title,legend_title_size,legend_size,legend_bbox_to_anchor,legend_loc,legend_items,legend_ncol,show,space_capitalize)
 
-def cat(typ:str,df:pd.DataFrame | str,x='',y='',cols: str=None,cats_ord: list=None, cols_ord: list=None, cols_exclude: list | str=None,
-        file: str=None,dir: str=None,palette_or_cmap='colorblind',edgecol='black',lw=1,errorbar='sd',errwid=1,errcap=0.1,
-        figsize=(10,6),title='',title_size=18,title_weight='bold',title_font='Arial',
-        x_axis='',x_axis_size=12,x_axis_weight='bold',x_axis_font='Arial',x_axis_scale='linear',x_axis_dims=(0,0),x_ticks_rot=0,x_ticks_font='Arial',x_ticks=[],
-        y_axis='',y_axis_size=12,y_axis_weight='bold',y_axis_font='Arial',y_axis_scale='linear',y_axis_dims=(0,0),y_ticks_rot=0,y_ticks_font='Arial',y_ticks=[],
-        legend_title='',legend_title_size=12,legend_size=9,legend_bbox_to_anchor=(1,1),legend_loc='upper left',legend_items=(0,0),legend_ncol=1,show=True,space_capitalize=True, 
+def cat(typ:str, df:pd.DataFrame | str, x: str='', y: str='', cols: str=None, cats_ord: list=None, cols_ord: list=None, cols_exclude: list | str=None,
+        file: str=None, dir: str=None, palette_or_cmap: str='colorblind', edgecol: str='black', lw: int=1, errorbar: str='sd', errwid: int=1, errcap: float=0.1,
+        figsize: tuple=(10,6), title: str='', title_size: int=18, title_weight: str='bold', title_font: str='Arial',
+        x_axis: str='', x_axis_size=12, x_axis_weight: str='bold', x_axis_font: str='Arial', x_axis_scale: str='linear', x_axis_dims: tuple=(0,0), x_ticks_rot: int=0, x_ticks_font: str='Arial', x_ticks: list=[],
+        y_axis: str='', y_axis_size=12, y_axis_weight: str='bold', y_axis_font: str='Arial', y_axis_scale: str='linear', y_axis_dims: tuple=(0,0), y_ticks_rot: int=0, y_ticks_font: str='Arial', y_ticks: list=[],
+        legend_title: str='', legend_title_size: int=12, legend_size: int=9, legend_bbox_to_anchor=(1,1), legend_loc: str='upper left', legend_items: tuple=(0,0), legend_ncol: int=1, show: bool=True, space_capitalize: bool=True, 
         **kwargs):
     ''' 
     cat(): creates category dependent graphs
@@ -571,12 +591,12 @@ def cat(typ:str,df:pd.DataFrame | str,x='',y='',cols: str=None,cats_ord: list=No
               y_axis,y_axis_size,y_axis_weight,y_axis_font,y_axis_scale,y_axis_dims,y_ticks_rot,y_ticks_font,y_ticks,
               legend_title,legend_title_size,legend_size,legend_bbox_to_anchor,legend_loc,legend_items,legend_ncol,show,space_capitalize)
 
-def dist(typ: str,df: pd.DataFrame | str,x: str,cols: str=None,cols_ord: list=None,cols_exclude: list | str=None,bins=40,log10_low=0,
-        file: str=None,dir: str=None,palette_or_cmap='colorblind',edgecol='black',lw=1,ht=1.5,asp=5,tp=.8,hs=0,des=False,
-        figsize=(10,6),title='',title_size=18,title_weight='bold',title_font='Arial',
-        x_axis='',x_axis_size=12,x_axis_weight='bold',x_axis_font='Arial',x_axis_scale='linear',x_axis_dims=(0,0),x_ticks_rot=0,x_ticks_font='Arial',x_ticks=[],
-        y_axis='',y_axis_size=12,y_axis_weight='bold',y_axis_font='Arial',y_axis_scale='linear',y_axis_dims=(0,0),y_ticks_rot=0,y_ticks_font='Arial',y_ticks=[],
-        legend_title='',legend_title_size=12,legend_size=9,legend_bbox_to_anchor=(1,1),legend_loc='upper left',legend_items=(0,0),legend_ncol=1,show=True,space_capitalize=True, 
+def dist(typ: str, df: pd.DataFrame | str, x: str, cols: str=None, cols_ord: list=None, cols_exclude: list | str=None, bins: int=40, log10_low: int=0,
+        file: str=None, dir: str=None, palette_or_cmap: str='colorblind', edgecol: str='black',lw: int=1, ht: float=1.5, asp: int=5, tp: float=.8, hs: int=0, despine: bool=False,
+        figsize=(10,6), title: str='', title_size: int=18, title_weight: str='bold', title_font: str='Arial',
+        x_axis: str='', x_axis_size: int=12, x_axis_weight: str='bold', x_axis_font: str='Arial', x_axis_scale: str='linear', x_axis_dims: tuple=(0,0), x_ticks_rot: int=0, x_ticks_font: str='Arial', x_ticks: list=[],
+        y_axis: str='', y_axis_size: int=12, y_axis_weight: str='bold', y_axis_font: str='Arial', y_axis_scale: str='linear', y_axis_dims: tuple=(0,0), y_ticks_rot: int=0, y_ticks_font: str='Arial', y_ticks: list=[],
+        legend_title: str='', legend_title_size: int=12, legend_size: int=9, legend_bbox_to_anchor: tuple=(1,1), legend_loc: str='upper left', legend_items: tuple=(0,0), legend_ncol: int=1, show: bool=True, space_capitalize: bool=True, 
         **kwargs):
     ''' 
     dist(): creates distribution graphs
@@ -599,7 +619,7 @@ def dist(typ: str,df: pd.DataFrame | str,x: str,cols: str=None,cols_ord: list=No
     asp (int, optional): aspect
     tp (float, optional): top
     hs (int, optional): hspace
-    des (bool, optional): despine
+    despine (bool, optional): despine
     figsize (tuple, optional): figure size
     title (str, optional): plot title
     title_size (int, optional): plot title font size
@@ -732,7 +752,7 @@ def dist(typ: str,df: pd.DataFrame | str,x: str,cols: str=None,cols_ord: list=No
             else: ".".join(file.split(".")[:-1])
         g.figure.suptitle(title, fontsize=title_size, fontweight=title_weight,fontfamily=title_font)
         g.figure.subplots_adjust(top=tp,hspace=hs)
-        if des==False: g.despine(top=False,right=False)
+        if despine==False: g.despine(top=False,right=False)
         else: g.despine(left=True)
         if legend_title=='': legend_title=cols
         g.figure.legend(title=legend_title,title_fontsize=legend_title_size,fontsize=legend_size,
@@ -745,12 +765,12 @@ def dist(typ: str,df: pd.DataFrame | str,x: str,cols: str=None,cols_ord: list=No
         print('Invalid type! hist, kde, hist_kde, rid')
         return
 
-def heat(df: pd.DataFrame | str, x: str=None, y: str=None, vars: str=None, vals: str=None,vals_dims:tuple=None,
-         file: str=None,dir: str=None,edgecol='black',lw=1,annot=False,cmap="Reds",sq=True,cbar=True,
-         title='',title_size=18,title_weight='bold',title_font='Arial',figsize=(10,6),
-         x_axis='',x_axis_size=12,x_axis_weight='bold',x_axis_font='Arial',x_ticks_rot=0,x_ticks_font='Arial',
-         y_axis='',y_axis_size=12,y_axis_weight='bold',y_axis_font='Arial',y_ticks_rot=0,y_ticks_font='Arial',
-         show=True,space_capitalize=True,**kwargs):
+def heat(df: pd.DataFrame | str, x: str=None, y: str=None, vars: str=None, vals: str=None, vals_dims:tuple=None,
+         file: str=None, dir: str=None, edgecol: str='black', lw: int=1, annot: bool=False, cmap: str="Reds", sq: bool=True, cbar: bool=True,
+         title: str='',title_size: int=18, title_weight: str='bold', title_font: str='Arial', figsize: tuple=(10,6),
+         x_axis: str='', x_axis_size: int=12, x_axis_weight: str='bold', x_axis_font: str='Arial', x_ticks_rot: int=0, x_ticks_font: str='Arial',
+         y_axis: str='', y_axis_size: int=12, y_axis_weight: str='bold', y_axis_font: str='Arial', y_ticks_rot: int=0, y_ticks_font: str='Arial',
+         show: bool=True, space_capitalize: bool=True, **kwargs):
     '''
     heat(): creates heat plot related graphs
 
@@ -852,13 +872,13 @@ def heat(df: pd.DataFrame | str, x: str=None, y: str=None, vars: str=None, vals:
         plt.savefig(fname=os.path.join(dir, file), dpi=600, bbox_inches='tight', format=f'{file.split(".")[-1]}')
     if show: plt.show()
 
-def stack(df: pd.DataFrame | str,x:str,y:str,cols:str,cutoff=0,cols_ord=[],x_ord=[],
-          file: str=None,dir: str=None,cmap='Set2',errcap=4,vertical=True,
-          figsize=(10,6),title='',title_size=18,title_weight='bold',title_font='Arial',
-          x_axis='',x_axis_size=12,x_axis_weight='bold',x_axis_font='Arial',x_axis_dims=(0,0),x_ticks_rot=0,x_ticks_font='Arial',
-          y_axis='',y_axis_size=12,y_axis_weight='bold',y_axis_font='Arial',y_axis_dims=(0,0),y_ticks_rot=0,y_ticks_font='Arial',
-          legend_title='',legend_title_size=12,legend_size=12,
-          legend_bbox_to_anchor=(1,1),legend_loc='upper left',legend_ncol=1,show=True,space_capitalize=True,**kwargs):
+def stack(df: pd.DataFrame | str, x: str, y: str, cols: str, cutoff: float=0, cols_ord: list=[], x_ord: list=[],
+          file: str=None, dir: str=None, palette_or_cmap: str='tab20', repeats: int=1, errcap: int=4, vertical: bool=True,
+          figsize: tuple=(10,6), title: str='', title_size: int=18, title_weight: str='bold', title_font: str='Arial',
+          x_axis: str='', x_axis_size: int=12, x_axis_weight: str='bold', x_axis_font: str='Arial', x_ticks_rot: int=0, x_ticks_font: str='Arial',
+          y_axis: str='', y_axis_size: int=12, y_axis_weight: str='bold', y_axis_font: str='Arial', y_axis_dims: tuple=(0,0), y_ticks_rot: int=0, y_ticks_font: str='Arial',
+          legend_title: str='', legend_title_size: int=12, legend_size: int=12,
+          legend_bbox_to_anchor: tuple=(1,1), legend_loc: str='upper left', legend_ncol: int=1, show: bool=True, space_capitalize: bool=True, **kwargs):
     ''' 
     stack(): creates stacked bar plot
 
@@ -871,7 +891,8 @@ def stack(df: pd.DataFrame | str,x:str,y:str,cols:str,cutoff=0,cols_ord=[],x_ord
     cols_ord (list, optional): color column values order
     file (str, optional): save plot to filename
     dir (str, optional): save plot to directory
-    cmap (str, optional): matplotlib color map
+    palette_or_cmap (str, optional): seaborn palette or matplotlib color map
+    repeats (int, optional): number of color palette or map repeats (Default: 1)
     errcap (int, optional): error bar cap line width
     vertical (bool, optional): vertical orientation; otherwise horizontal (Default: True)
     figsize (tuple, optional): figure size
@@ -889,6 +910,7 @@ def stack(df: pd.DataFrame | str,x:str,y:str,cols:str,cutoff=0,cols_ord=[],x_ord
     y_axis_size (int, optional): y-axis name font size
     y_axis_weight (str, optional): y-axis name bold, italics, etc.
     y_axis_font (str, optional): y-axis font
+    y_axis_dims (tuple, optional): y-axis dimensions (start, end)
     y_ticks_rot (int, optional): y-axis ticks rotation
     y_ticks_font (str, optional): y-ticks font
     legend_title (str, optional): legend title
@@ -924,7 +946,7 @@ def stack(df: pd.DataFrame | str,x:str,y:str,cols:str,cutoff=0,cols_ord=[],x_ord
 
     # Make stacked barplot
     if vertical: # orientation
-        df_pivot.plot(kind='bar',yerr=df_pivot_err,capsize=errcap, figsize=figsize,colormap=cmap,stacked=True,**kwargs)
+        df_pivot.plot(kind='bar',yerr=df_pivot_err,capsize=errcap, figsize=figsize,colormap=repeat_palette_cmap(palette_or_cmap,repeats),stacked=True,**kwargs)
         
         # Set x axis
         if x_axis=='': 
@@ -945,7 +967,7 @@ def stack(df: pd.DataFrame | str,x:str,y:str,cols:str,cutoff=0,cols_ord=[],x_ord
         else: plt.ylim(y_axis_dims[0],y_axis_dims[1])
 
     else: # Horizontal orientation
-        df_pivot.plot(kind='barh',yerr=df_pivot_err,capsize=errcap, figsize=figsize,colormap=cmap,stacked=True,**kwargs)
+        df_pivot.plot(kind='barh',xerr=df_pivot_err,capsize=errcap, figsize=figsize,colormap=repeat_palette_cmap(palette_or_cmap,repeats),stacked=True,**kwargs)
 
         # Set y axis
         if x_axis=='': 
@@ -962,8 +984,8 @@ def stack(df: pd.DataFrame | str,x:str,y:str,cols:str,cutoff=0,cols_ord=[],x_ord
         if (y_ticks_rot==0)|(y_ticks_rot==90): plt.xticks(rotation=y_ticks_rot,ha='center',fontfamily=y_ticks_font)
         else: plt.xticks(rotation=y_ticks_rot,ha='right',fontfamily=y_ticks_font)
 
-        if x_axis_dims==(0,0): print('Default x axis dimensions.')
-        else: plt.xlim(x_axis_dims[0],x_axis_dims[1])
+        if y_axis_dims==(0,0): print('Default x axis dimensions.')
+        else: plt.xlim(y_axis_dims[0],y_axis_dims[1])
         
     # Set title
     if title=='' and file is not None: title=re_un_cap(".".join(file.split(".")[:-1]))
@@ -982,14 +1004,14 @@ def stack(df: pd.DataFrame | str,x:str,y:str,cols:str,cutoff=0,cols_ord=[],x_ord
         plt.savefig(fname=os.path.join(dir, file), dpi=600, bbox_inches='tight', format=f'{file.split(".")[-1]}')
     if show: plt.show()
 
-def vol(df: pd.DataFrame | str,x: str,y: str,stys:str=None, size:str=None,size_dims:tuple=None,label:str=None,
-        FC_threshold=2,pval_threshold=0.05,file: str=None,dir: str=None,color='lightgray',alpha=0.5,edgecol='black',vertical=True,
-        figsize=(10,6),title='',title_size=18,title_weight='bold',title_font='Arial',
-        x_axis='',x_axis_size=12,x_axis_weight='bold',x_axis_font='Arial',x_axis_dims=(0,0),x_ticks_rot=0,x_ticks_font='Arial',x_ticks=[],
-        y_axis='',y_axis_size=12,y_axis_weight='bold',y_axis_font='Arial',y_axis_dims=(0,0),y_ticks_rot=0,y_ticks_font='Arial',y_ticks=[],
-        legend_title='',legend_title_size=12,legend_size=9,legend_bbox_to_anchor=(1,1),legend_loc='upper left',
-        legend_items=(0,0),legend_ncol=1,display_size=True,display_labels=True,return_df=True,show=True,space_capitalize=True,
-        **kwargs):
+def vol(df: pd.DataFrame | str, x: str, y: str, stys: str=None, size: str=None, size_dims: tuple=None, label: str=None,
+        FC_threshold: float=2, pval_threshold: float=0.05, file: str=None, dir: str=None, color: str='lightgray', alpha: float=0.5, edgecol: str='black', vertical: bool=True,
+        figsize=(10,6), title: str='', title_size: int=18, title_weight: str='bold', title_font: str='Arial',
+        x_axis: str='', x_axis_size: int=12, x_axis_weight: str='bold', x_axis_font: str='Arial', x_axis_dims: tuple=(0,0), x_ticks_rot: int=0, x_ticks_font: str='Arial', x_ticks: list=[],
+        y_axis: str='', y_axis_size: int=12, y_axis_weight: str='bold', y_axis_font: str='Arial', y_axis_dims: tuple=(0,0), y_ticks_rot: int=0, y_ticks_font: str='Arial', y_ticks: list=[],
+        legend_title: str='', legend_title_size: int=12, legend_size: int=9, legend_bbox_to_anchor: tuple=(1,1), legend_loc: str='upper left',
+        legend_items: tuple=(0,0),legend_ncol: int=1 ,display_size: bool=True, display_labels: bool=True, return_df: bool=True, show: bool=True, space_capitalize: bool=True,
+        **kwargs) -> pd.DataFrame:
     ''' 
     vol(): creates volcano plot
     

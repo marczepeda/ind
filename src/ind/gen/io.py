@@ -28,7 +28,7 @@ Usage:
 - out_subs(): delete subdirectories and move their files to the parent directory
 
 [Directory Methods]
-- print_relative_paths(): prints relative paths for all files in a directory including subfolders
+- relative_paths(): returns relative paths for all files in a directory including subfolders
 - sorted_file_names: returns sorted file names in a directory with the specified suffix
 '''
 
@@ -84,7 +84,7 @@ def recursive_parse(data):
         return tuple(try_parse(item) for item in data)
     return data  # Return the data as-is if it doesn't match any known structure
 
-def df_try_parse(df: pd.DataFrame):
+def df_try_parse(df: pd.DataFrame) -> pd.DataFrame:
     '''
     df_try_parse(): apply try_parse() to dataframe columns and return dataframe
 
@@ -120,7 +120,7 @@ def recursive_json_decode(obj):
     return obj
 
 # Input
-def get(pt: str,literal_eval=False,**kwargs):
+def get(pt: str, literal_eval:bool=False, **kwargs) -> pd.DataFrame | dict[pd.DataFrame]:
     ''' 
     get(): returns pandas dataframe from a file
     
@@ -141,10 +141,14 @@ def get(pt: str,literal_eval=False,**kwargs):
         if literal_eval: return df_try_parse(pd.read_csv(filepath_or_buffer=pt,sep='\t',**kwargs))
         else: return pd.read_csv(filepath_or_buffer=pt,sep='\t',**kwargs)
     elif suf=='xlsx': 
-        if literal_eval: return {sheet_name:df_try_parse(pd.read_excel(pt,sheet_name,**kwargs))
+        if literal_eval: 
+            dc = {sheet_name:df_try_parse(pd.read_excel(pt,sheet_name,**kwargs))
                                  for sheet_name in pd.ExcelFile(pt).sheet_names}
-        else: return {sheet_name:pd.read_excel(pt,sheet_name,**kwargs)
+        else: 
+            dc = {sheet_name:pd.read_excel(pt,sheet_name,**kwargs)
                                  for sheet_name in pd.ExcelFile(pt).sheet_names}
+        print(f"Excel file: {pt}\nKeys: {', '.join([key for key in dc.keys()])}")
+        return dc
     elif suf=='html': 
         if literal_eval: return df_try_parse(pd.read_html(pt,**kwargs))
         else: return pd.read_html(pt,**kwargs)
@@ -152,7 +156,7 @@ def get(pt: str,literal_eval=False,**kwargs):
         if literal_eval: return df_try_parse(pd.read_csv(filepath_or_buffer=pt,**kwargs))
         else: return pd.read_csv(filepath_or_buffer=pt,**kwargs)
     
-def get_dir(dir: str,suf='.csv',literal_eval=False,**kwargs):
+def get_dir(dir: str, suf: str='.csv', literal_eval: bool=False, **kwargs) -> dict[pd.DataFrame]:
     ''' 
     get_dir(): returns python dictionary of dataframe from files within a directory
     
@@ -167,10 +171,12 @@ def get_dir(dir: str,suf='.csv',literal_eval=False,**kwargs):
     Dependencies: pandas
     '''
     files = [file for file in os.listdir(dir) if file[-len(suf):]==suf]
-    return {file[:-len(suf)]:get(os.path.join(dir,file),literal_eval,**kwargs) for file in files}
+    dc = {file[:-len(suf)]:get(os.path.join(dir,file),literal_eval,**kwargs) for file in files}
+    print(f"Directory: {dir}\nKeys: {', '.join([key for key in dc.keys()])}")
+    return dc
 
 # Output
-def mkdir(dir: str, sep='/'):
+def mkdir(dir: str, sep: str='/'):
     '''
     mkdir(): make directory if it does not exist (including parent directories)
 
@@ -188,7 +194,7 @@ def mkdir(dir: str, sep='/'):
             print(f'Created {check_dir}')
 
 
-def save(dir: str, file: str, obj, cols=[], id=False, sort=True, **kwargs):
+def save(dir: str, file: str, obj, cols: list=[], id: bool=False, sort: bool=True, **kwargs):
     ''' 
     save(): save .csv file to a specified output directory from obj
     
@@ -231,27 +237,27 @@ def save(dir: str, file: str, obj, cols=[], id=False, sort=True, **kwargs):
                 df.to_excel(writer,sheet_name=key,index=id) # Dataframe per sheet
     else: raise ValueError(f'save() does not work for {type(obj)} objects with {file.split(".")[-1]} files.')
 
-def save_dir(dir: str, suf: str, dc: dict, **kwargs):
+def save_dir(dir: str, dc: dict, suf: str='.csv', **kwargs):
     ''' 
     save_dir(): save .csv files to a specified output directory from dictionary of objs
     
     Parameters:
     dir (str): output directory path
-    suf (str): file name suffix
     dc (dict): dictionary of objects (files)
+    suf (str, optional): file name suffix (Default: .csv)
 
     Dependencies: pandas, os, csv, & save()
     '''
-    for key,val in dc.items(): save(dir=dir,file=key+suf,obj=val,**kwargs)
+    for key,val in dc.items(): save(dir=dir,file=str(key)+suf,obj=val,**kwargs)
 
 # Input/Output
-def excel_csvs(pt: str,dir='',**kwargs):
+def excel_csvs(pt: str, dir: str='', **kwargs):
     ''' 
     excel_csvs(): exports excel file to .csv files in specified directory    
     
     Parameters:
     pt (str): excel file path
-    dir (str, optional): output directory path (same directory as excel file)
+    dir (str, optional): output directory path (Default: same directory as excel file name)
     
     Dependencies: pandas, os, & mkdir
     '''
@@ -261,7 +267,7 @@ def excel_csvs(pt: str,dir='',**kwargs):
         df = pd.read_excel(pd.ExcelFile(pt),sheet_name,**kwargs) # Read the sheet into a DataFrame
         df.to_csv(os.path.join(dir,f"{sheet_name}.csv"),index=False) # Save the DataFrame to a CSV file
 
-def df_to_dc_txt(df: pd.DataFrame):
+def df_to_dc_txt(df: pd.DataFrame) -> str:
     ''' 
     df_to_dc_txt(): returns pandas DataFrame as a printed text that resembles a Python dictionary
     
@@ -283,7 +289,7 @@ def df_to_dc_txt(df: pd.DataFrame):
     print(dict_text)
     return dict_text
 
-def dc_txt_to_df(dc_txt: str, transpose=True):
+def dc_txt_to_df(dc_txt: str, transpose: bool=True) -> str:
     ''' 
     dc_txt_to_df(): returns a pandas DataFrame from text that resembles a Python dictionary
     
@@ -354,22 +360,24 @@ def out_subs(dir: str):
                 os.rmdir(dir_path)
 
 # Directory Methods
-def print_relative_paths(root_dir: str):
+def relative_paths(root_dir: str) -> list[str]:
     ''' 
-    print_relative_paths(): prints relative paths for all files in a directory including subfolders
+    relative_paths(): returns relative paths for all files in a directory including subfolders
     
     Parameters:
     root_dir (str): root directory path or relative path
 
     Dependencies: os
     '''
+    relative_paths = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
         for filename in filenames:
             # Get the relative path of the file
             relative_path = os.path.relpath(os.path.join(dirpath, filename), root_dir)
-            print(relative_path)
+            relative_paths.append(relative_path)
+    return relative_paths
 
-def sorted_file_names(dir: str, suf: str='.csv'):
+def sorted_file_names(dir: str, suf: str='.csv') -> list[str]:
     '''
     sorted_file_names: returns sorted file names in a directory with the specified suffix
 
