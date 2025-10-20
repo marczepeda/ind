@@ -28,24 +28,24 @@
     conda env create -f ind.yml # When conda asks you to proceed, type "y"
     conda activate ind
     pip install -e . # Include the "."
+    ind autocomplete # Optional: set up ind autocomplete; follow CLI instructions
     conda deactivate
     ```
-7. (Optional) Download openBB: https://docs.openbb.co/platform/installation
+5. (Optional) Download openBB: https://docs.openbb.co/platform/installation
     - Register for an account and sign in.
     - Mac/Windows: https://my.openbb.co/app/platform/downloads
+
 ### Update
 1. Enter environment & delete ind:
     ```shell
-    cd ~
-    cd git
+    cd ~/git/ind
     conda activate ind
-    pip uninstall ind # Enter 'Y' when prompted
-    rm -rf ind
+    pip uninstall -y ind
+    rm -rf build/ dist/ *.egg-info
     ```
-2. Clone ind from github and install ind:
+2. Pull latest version from github and install edms:
     ```shell
-    git clone https://github.com/marczepeda/ind.git
-    cd ind
+    git pull origin main
     pip install -e . # Include the "."
     conda deactivate
     ```
