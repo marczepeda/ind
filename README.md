@@ -1,4 +1,8 @@
 # Investigational New Drug (IND) Application
+## Command Line Interface
+```shell
+ind -h # or edms <TAB>
+```
 ## Package Organization
 - gen: input/output, data wrangling, generating plots, and statistics.
     ```shell
