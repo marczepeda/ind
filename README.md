@@ -1,17 +1,9 @@
 # Investigational New Drug (IND) Application
+Like DrugBank, but free. Only accessible through CLI for now...
 ## Command Line Interface
 ```shell
-ind -h # or edms <TAB>
+ind -h # or ind <TAB>
 ```
-## Package Organization
-- gen: input/output, data wrangling, generating plots, and statistics.
-    ```shell
-    import ind.gen.io as io
-    import ind.gen.tidy as t
-    import ind.gen.plot as p
-    import ind.gen.stat as st
-    ```
-
 ## Instructions
 ### Install
 1. Download Anaconda.

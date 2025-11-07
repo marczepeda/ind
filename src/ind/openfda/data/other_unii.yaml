@@ -1,0 +1,33 @@
+type: object
+properties:
+  substance_name:
+    type: array
+    items:
+      type: string
+      is_exact: true
+      format:
+      pattern:
+      description: >
+        The non-proprietary or preferred name of the substance.
+        This is the human-readable chemical or ingredient name associated with the UNII code.
+      possible_values:
+        type: reference
+        value:
+          name: "Substance name"
+          link: "https://fdasis.nlm.nih.gov/srs/srs.jsp"
+  unii:
+    type: array
+    items:
+      type: string
+      is_exact: true
+      format:
+      pattern: ^[A-Z0-9]{10}$
+      description: >
+        The Unique Ingredient Identifier (UNII), a non-proprietary,
+        unique, unambiguous, alphanumeric identifier assigned by FDA to a substance
+        based on its molecular structure or descriptive information.
+      possible_values:
+        type: reference
+        value:
+          name: "Unique Ingredient Identifiers"
+          link: "https://fdasis.nlm.nih.gov/srs/srs.jsp"

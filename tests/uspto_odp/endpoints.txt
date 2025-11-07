@@ -1,0 +1,120 @@
+
+====================
+PATENT: Applications
+====================
+
+--- POST/GET /api/v1/patent/applications/search (small query) ---
+
+Patent Applications Search Body:
+{'fields': ['applicationNumberText',
+            'applicationMetaData.inventionTitle',
+            'grantDate',
+            'filingDate',
+            'patentNumber'],
+ 'pagination': {'limit': 3, 'offset': 0},
+ 'q': 'applicationMetaData.applicationTypeLabelName:Utility'}
+
+Patent search: OK
+Search count: 8915480
+  • 18718200: VESSEL DILATION DEVICE FOR DISTAL BODY PARTS
+  • 18861797: COMPLEX MICROBIAL INOCULANT FOR EXHAUST GAS TREATMENT BASED ON AEROBIC COMPOSTING, AND PREPARATION METHOD AND APPLICATION THEREOF
+  • 19476821: EQUIPMENT MONITORING SYSTEM
+
+--- POST/GET /api/v1/patent/applications/search/download (tiny) ---
+
+Patent Applications Download Body:
+{'fields': ['applicationNumberText', 'applicationMetaData.inventionTitle'],
+ 'pagination': {'limit': 1, 'offset': 0},
+ 'q': 'applicationMetaData.applicationTypeLabelName:Utility'}
+
+Patent search download: OK
+Download bytes len: 141
+
+--- GET /api/v1/patent/applications/18718200 ---
+Get application: OK
+
+--- GET /meta-data ---
+Get meta-data: OK
+
+--- GET /adjustment ---
+Get adjustment: OK
+
+--- GET /assignment ---
+Get assignment: OK
+
+--- GET /attorney ---
+Get attorney: OK
+
+--- GET /continuity ---
+Get continuity: OK
+
+--- GET /foreign-priority ---
+Get foreign-priority: OK
+
+--- GET /transactions ---
+Get transactions: OK
+
+--- GET /documents ---
+Get documents: OK
+
+--- GET /associated-documents ---
+Get associated-documents: OK
+
+--- GET/POST /api/v1/patent/status-codes ---
+
+Patent Status Codes Body:
+{}
+
+Status codes (auto): OK
+Status codes keys: ['count', 'statusCodeBag', 'requestIdentifier']
+
+==============
+BULK: Datasets
+==============
+
+--- GET /api/v1/datasets/products/search (small) ---
+
+Bulk Dataset Search Params:
+{'limit': 3}
+
+Bulk products search: OK
+First product: PTFWPRD
+
+--- GET /api/v1/datasets/products/{productIdentifier} (include_files latest) ---
+
+Bulk Get Product Params:
+{'includeFiles': 'true', 'latest': 'true', 'limit': 1}
+
+Bulk get product: OK
+
+====================
+PETITIONS: Decisions
+====================
+
+--- POST/GET /api/v1/petition/decisions/search (small) ---
+
+Petition Decisions Search Body:
+{'fields': ['petitionDecisionRecordIdentifier',
+            'applicationNumberText',
+            'decisionTypeCodeDescriptionText',
+            'petitionMailDate'],
+ 'pagination': {'limit': 3, 'offset': 0}}
+
+Petitions search: OK
+First decision id: 0b71b685-adb9-539d-8257-127dc9e58247
+
+--- POST/GET /api/v1/petition/decisions/search/download (tiny, json) ---
+
+Petition Decisions Download Body:
+{'fields': ['petitionDecisionRecordIdentifier', 'applicationNumberText'],
+ 'format': 'json',
+ 'pagination': {'limit': 1, 'offset': 0}}
+
+Petitions search download: OK
+Download bytes len: 137
+
+--- GET /api/v1/petition/decisions/{petitionDecisionRecordIdentifier} ---
+Get decision (includeDocuments=True): OK
+Decision keys: ['count', 'requestIdentifier', 'petitionDecisionDataBag']
+
+DONE.

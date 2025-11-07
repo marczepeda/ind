@@ -1,0 +1,19 @@
+uspto_odp.client rate-limit demos
+This file can be run directly to produce human-readable output,
+or executed via pytest to run the unit tests.
+
+
+[DEMO] request_json retries on 429
+result={'ok': True}, calls=2, slept=call(5)
+PASS
+
+[DEMO] throttle_downloads enforces ≤5 starts/10s
+starts=6, slept=call(9.009868869781494)
+PASS
+
+[DEMO] download_url emits heads-up and warning after many downloads
+Captured output:
+[uspto_odp] Heads-up: you've downloaded this file ~15 times in this process.
+[uspto_odp] WARNING: you may exceed the USPTO annual per-file limit (20/year per key).
+[uspto_odp] WARNING: you may exceed the USPTO annual per-file limit (20/year per key).
+PASS

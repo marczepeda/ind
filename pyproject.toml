@@ -25,7 +25,9 @@ dependencies = [
   "adjustText",
   "argcomplete",
   "rich",
-  "rich-argparse"
+  "rich-argparse",
+  "pytest",
+  "pyyaml"
 ]
 
 classifiers = [
@@ -42,6 +44,12 @@ Repository = "https://github.com/marczepeda/ind"
 Issues = "https://github.com/marczepeda/ind/issues"
 Documentation = "https://github.com/marczepeda/ind#readme"
 
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "responses>=0.25",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 include-package-data = true
@@ -50,7 +58,6 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-"ind.resources" = ["*.csv"]
 "ind.scripts" = ["*.sh"]
 
 [tool.setuptools_scm]
