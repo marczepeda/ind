@@ -1,0 +1,74 @@
+Disease Search vlatest
+----------------------
+{
+  "terms": [
+    "lymphoma"
+  ],
+  "total": 95,
+  "count": 10,
+  "offset": 0,
+  "max_score": 10840.0,
+  "order": "score",
+  "results": [
+    {
+      "id": "51f6cf57e3e27c3994bd531e",
+      "name": "Diffuse large B-cell lymphoma, NOS (DLBCL)",
+      "score": 10840.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf57e3e27c3994bd532a",
+      "name": "Follicular lymphoma (FL), NOS",
+      "score": 7680.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf57e3e27c3994bd533c",
+      "name": "Follicular lymphoma, grade 3",
+      "score": 7280.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf57e3e27c3994bd5333",
+      "name": "B-cell lymphoma, unclassifiable, with features intermediate between diffuse large B-cell lymphoma and classic Hodgkin lymphoma",
+      "score": 6840.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf57e3e27c3994bd534b",
+      "name": "Extranodal marginal zone lymphoma of mucosa-associated lymphoid tissue (MALT lymphoma)",
+      "score": 6320.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf56e3e27c3994bd52e8",
+      "name": "Peripheral T-cell lymphoma (PTCL), NOS",
+      "score": 6080.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf57e3e27c3994bd5330",
+      "name": "Follicular lymphoma, grade 1",
+      "score": 6080.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf57e3e27c3994bd532d",
+      "name": "Follicular lymphoma, grade 2",
+      "score": 5920.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf56e3e27c3994bd5315",
+      "name": "Enteropathy-associated (type) T-cell lymphoma (EATL)",
+      "score": 5120.0,
+      "type": "HEMATO"
+    },
+    {
+      "id": "51f6cf57e3e27c3994bd5357",
+      "name": "Mantle cell lymphoma (MCL)",
+      "score": 5080.0,
+      "type": "HEMATO"
+    }
+  ]
+}

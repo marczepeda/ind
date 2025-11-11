@@ -30,6 +30,8 @@ from typing import Any, Dict, Mapping, Optional, Deque
 import time
 import threading
 from collections import deque
+import os
+from ..config import get_info
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -77,7 +79,7 @@ class ServerError(ApiError):           # 5xx
 # =======================
 # Session builder
 # =======================
-def _build_session(api_key: Optional[str]) -> requests.Session:
+def _build_session(api_key: Optional[str]=None) -> requests.Session:
     s = requests.Session()
     retry = Retry(
         total=2,                           # modest retries
@@ -91,8 +93,16 @@ def _build_session(api_key: Optional[str]) -> requests.Session:
         "Accept": "application/json",
         "User-Agent": f"uspto-odp-sdk/{__version__} (+https://github.com/marczepeda/ind)",
     })
+    api_key = api_key or os.getenv("USPTO_API_KEY") or get_info("USPTO_API_KEY")
     if api_key:
         s.headers.update({"x-api-key": api_key})
+    else:
+        raise ApiError("""USPTO_API_KEY not provided; either...
+  - pass api_key to USPTOClient
+  - set USPTO_API_KEY environment variable: export USPTO_API_KEY=your_api_key
+  - set USPTO_API_KEY in configuration: ind config set --id USPTO_API_KEY --info your_api_key
+Refer to https://data.uspto.gov/apis/getting-started for more information.""")
+
     s.mount("https://", HTTPAdapter(max_retries=retry))
     s.mount("http://", HTTPAdapter(max_retries=retry))
     return s

@@ -112,13 +112,13 @@ def _cmd_count(args: argparse.Namespace) -> int:
 # Public API consumed by ind.main
 # -------------------------
 
-def add_subparser(subparsers: argparse._SubParsersAction, Formatter: Any) -> None:
+def add_subparser(subparsers: argparse._SubParsersAction, formatter_class: Any) -> None:
     """Register the `openfda` command and its subcommands on the main parser."""
     parser = subparsers.add_parser(
         "openfda",
         help="Query the OpenFDA APIs",
         description="Query or facet-count across OpenFDA endpoints (drug, device, food, etc.)",
-        formatter_class=Formatter
+        formatter_class=formatter_class
     )
     sub = parser.add_subparsers(dest="openfda_cmd")
 
@@ -127,7 +127,7 @@ def add_subparser(subparsers: argparse._SubParsersAction, Formatter: Any) -> Non
         "query",
         help="Run a document-level search against an OpenFDA endpoint.",
         description="Run a document-level search against an OpenFDA endpoint.",
-        formatter_class=Formatter,
+        formatter_class=formatter_class,
     )
     p_q.add_argument("endpoint", help="Endpoint path; see details below.")
     p_q.add_argument("--search", help="Lucene-like search expression, e.g. reactionmeddrapt:Headache")
@@ -152,7 +152,7 @@ def add_subparser(subparsers: argparse._SubParsersAction, Formatter: Any) -> Non
         "count",
         help="Facet on a field using the 'count' parameter.",
         description="Facet on a field using the 'count' parameter.",
-        formatter_class=Formatter,
+        formatter_class=formatter_class,
     )
     p_c.add_argument("endpoint", help="Endpoint path; see details below.")
     p_c.add_argument("field", help="Field to facet on. Optionally use dot paths; add --exact to suffix '.exact'.")
@@ -171,7 +171,7 @@ def add_subparser(subparsers: argparse._SubParsersAction, Formatter: Any) -> Non
     p_c.add_argument("--backoff", type=float, default=1.5, help="Retry backoff factor (default: 1.5).")
     p_c.set_defaults(func=_cmd_count)
 
-    # Help message for ind pe prime_designer because input file format can't be captured as block text by Myformatter(RichHelpFormatter):
+    # Help message for ind openfda query/count -h block text by Myformatter(RichHelpformatter_class):
     if any(["ind" in argv for argv in sys.argv]) and "openfda" in sys.argv and ("--help" in sys.argv or "-h" in sys.argv):
         if "query" in sys.argv:
             p_q.print_help()

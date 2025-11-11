@@ -22,17 +22,17 @@ from . import (
 def _print_json(obj: Any) -> None:
     rprint(json.dumps(obj, indent=2))
 
-def add_subparser(subparsers, Formatter):
+def add_subparser(subparsers, formatter_class):
     ct = subparsers.add_parser(
         "trials",
         help="ClinicalTrials.gov API",
         description="ClinicalTrials.gov API",
-        formatter_class=Formatter,
+        formatter_class=formatter_class,
     )
     ct_sub = ct.add_subparsers(dest="ct_cmd", required=True)
 
     # /studies
-    p_list = ct_sub.add_parser("studies", help="List studies", description="List studies", formatter_class=Formatter)
+    p_list = ct_sub.add_parser("studies", help="List studies", description="List studies", formatter_class=formatter_class)
     # query.* (Essie)
     p_list.add_argument("--q-cond", help="query.cond")
     p_list.add_argument("--q-term", help="query.term")
@@ -61,7 +61,7 @@ def add_subparser(subparsers, Formatter):
     p_list.add_argument("--rate", type=float, default=2.0)
 
     # /studies/{nctId}
-    p_one = ct_sub.add_parser("study", help="Get single study by NCT ID", description="Get single study by NCT ID", formatter_class=Formatter)
+    p_one = ct_sub.add_parser("study", help="Get single study by NCT ID", description="Get single study by NCT ID", formatter_class=formatter_class)
     p_one.add_argument("nct_id")
     p_one.add_argument("--format", default="json", choices=["json", "fhir.json"])
     p_one.add_argument("--fields", nargs="*")
@@ -70,25 +70,25 @@ def add_subparser(subparsers, Formatter):
     p_one.add_argument("--rate", type=float, default=2.0)
 
     # metadata, enums, search-areas
-    p_meta = ct_sub.add_parser("metadata", help="Get studies metadata", description="Get studies metadata", formatter_class=Formatter)
+    p_meta = ct_sub.add_parser("metadata", help="Get studies metadata", description="Get studies metadata", formatter_class=formatter_class)
     p_meta.add_argument("--indexed-only", action="store_true")
     p_meta.add_argument("--historic-only", action="store_true")
     p_meta.add_argument("--timeout", type=float, default=20.0)
     p_meta.add_argument("--rate", type=float, default=2.0)
 
-    ct_sub.add_parser("enums", help="Get enums", description="Get enums", formatter_class=Formatter).add_argument("--timeout", type=float, default=20.0)
-    ct_sub.add_parser("search-areas", help="Get search areas", description="Get search areas", formatter_class=Formatter).add_argument("--timeout", type=float, default=20.0)
+    ct_sub.add_parser("enums", help="Get enums", description="Get enums", formatter_class=formatter_class).add_argument("--timeout", type=float, default=20.0)
+    ct_sub.add_parser("search-areas", help="Get search areas", description="Get search areas", formatter_class=formatter_class).add_argument("--timeout", type=float, default=20.0)
 
     # stats
-    ct_sub.add_parser("size", help="Study JSON size stats", description="Study JSON size stats", formatter_class=Formatter).add_argument("--timeout", type=float, default=20.0)
+    ct_sub.add_parser("size", help="Study JSON size stats", description="Study JSON size stats", formatter_class=formatter_class).add_argument("--timeout", type=float, default=20.0)
 
-    p_vals = ct_sub.add_parser("field-values", help="Value stats for leaf fields", description="Value stats for leaf fields", formatter_class=Formatter)
+    p_vals = ct_sub.add_parser("field-values", help="Value stats for leaf fields", description="Value stats for leaf fields", formatter_class=formatter_class)
     p_vals.add_argument("--fields", nargs="*")
     p_vals.add_argument("--types", nargs="*", choices=["ENUM", "STRING", "DATE", "INTEGER", "NUMBER", "BOOLEAN"])
     p_vals.add_argument("--limit", type=int, default=15)
     p_vals.add_argument("--timeout", type=float, default=20.0)
 
-    p_fs = ct_sub.add_parser("field-sizes", help="Size stats for list/array fields", description="Size stats for list/array fields", formatter_class=Formatter)
+    p_fs = ct_sub.add_parser("field-sizes", help="Size stats for list/array fields", description="Size stats for list/array fields", formatter_class=formatter_class)
     p_fs.add_argument("--fields", nargs="*")
     p_fs.add_argument("--limit", type=int, default=15)
     p_fs.add_argument("--timeout", type=float, default=20.0)

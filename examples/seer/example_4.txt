@@ -1,0 +1,76 @@
+NDC Search
+----------
+[
+  {
+    "ndc": "82143-001",
+    "type_name": "HUMAN PRESCRIPTION DRUG",
+    "proprietary_name": "Avzivi",
+    "proprietary_name_suffix": "tnjn",
+    "non_proprietary_name": [
+      "bevacizumab"
+    ],
+    "dosage_form_name": "INJECTION, SOLUTION",
+    "route_name": [
+      "INTRAVENOUS"
+    ],
+    "start_marketing_date": "20250101",
+    "marketing_category_name": "BLA",
+    "application_number": "BLA761198",
+    "labeler_name": "Bio-Thera Solutions, Ltd.",
+    "substances": [
+      {
+        "name": "BEVACIZUMAB-TNJN",
+        "strength": "100",
+        "unit": "mg/4mL"
+      }
+    ],
+    "pharm_class": [
+      "Vascular Endothelial Growth Factor Inhibitor [EPC]",
+      "Vascular Endothelial Growth Factor Inhibitors [MoA]",
+      "Vascular Endothelial Growth Factor-directed Antibody Interactions [MoA]"
+    ],
+    "packages": [
+      {
+        "package": "01",
+        "description": "1 VIAL in 1 CARTON (82143-001-01)  / 4 mL in 1 VIAL",
+        "start_marketing_date": "20250101"
+      }
+    ],
+    "seer": {
+      "categories": [
+        "IMMUNOTHERAPY"
+      ],
+      "major_drug_class": "Monoclonal Antibody",
+      "minor_drug_class": "VEGFR",
+      "exclusive_oncologic_agent": true,
+      "date_modified": "2025-03-11T17:22:09.078Z"
+    },
+    "date_added": "2025-01-05T08:03:38.546Z",
+    "date_modified": "2025-01-05T08:03:38.546Z",
+    "score": 0.2431708425283432
+  },
+  {
+    "ndc": "83257-010",
+    "type_name": "HUMAN PRESCRIPTION DRUG",
+    "proprietary_name": "JOBEVNE",
+    "non_proprietary_name": [
+      "bevacizumab-nwgd"
+    ],
+    "dosage_form_name": "INJECTION",
+    "route_name": [
+      "INTRAVASCULAR"
+    ],
+    "start_marketing_date": "20250410",
+    "marketing_category_name": "BLA",
+    "application_number": "BLA761175",
+    "labeler_name": "Biocon Biologics Inc.",
+    "substances": [
+      {
+        "name": "BEVACIZUMAB",
+        "strength": "25",
+        "unit": "mg/mL"
+      }
+    ],
+    "pharm_class": [
+      "Vascular Endothelial Growth Factor In
+... [truncated] ...

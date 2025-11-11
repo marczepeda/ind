@@ -1,0 +1,150 @@
+=== Example 2: PubMed esummary ===
+[
+  {
+    "Item": [],
+    "Id": "17284678",
+    "PubDate": "2007 Mar",
+    "EPubDate": "2007 Feb 6",
+    "Source": "Genome Res",
+    "AuthorList": [
+      "Ling KH",
+      "Rajandream MA",
+      "Rivailler P",
+      "Ivens A",
+      "Yap SJ",
+      "Madeira AM",
+      "Mungall K",
+      "Billington K",
+      "Yee WY",
+      "Bankier AT",
+      "Carroll F",
+      "Durham AM",
+      "Peters N",
+      "Loo SS",
+      "Isa MN",
+      "Novaes J",
+      "Quail M",
+      "Rosli R",
+      "Nor Shamsudin M",
+      "Sobreira TJ",
+      "Tivey AR",
+      "Wai SF",
+      "White S",
+      "Wu X",
+      "Kerhornou A",
+      "Blake D",
+      "Mohamed R",
+      "Shirley M",
+      "Gruber A",
+      "Berriman M",
+      "Tomley F",
+      "Dear PH",
+      "Wan KL"
+    ],
+    "LastAuthor": "Wan KL",
+    "Title": "Sequencing and analysis of chromosome 1 of Eimeria tenella reveals a unique segmental organization.",
+    "Volume": "17",
+    "Issue": "3",
+    "Pages": "311-9",
+    "LangList": [
+      "English"
+    ],
+    "NlmUniqueID": "9518021",
+    "ISSN": "1088-9051",
+    "ESSN": "1549-5477",
+    "PubTypeList": [
+      "Journal Article"
+    ],
+    "RecordStatus": "PubMed - indexed for MEDLINE",
+    "PubStatus": "ppublish+epublish",
+    "ArticleIds": {
+      "pubmed": [
+        "17284678"
+      ],
+      "medline": [
+        "9518021"
+      ],
+      "pmc": "PMC1800922",
+      "pmcid": "pmc-id: PMC1800922;",
+      "doi": "10.1101/gr.5823007",
+      "pii": "gr.5823007"
+    },
+    "DOI": "10.1101/gr.5823007",
+    "History": {
+      "pubmed": [
+        "2007/02/08 09:00"
+      ],
+      "medline": [
+        "2007/04/06 09:00"
+      ],
+      "entrez": "2007/02/08 09:00",
+      "pmc-release": "2007/09/01 00:00"
+    },
+    "References": [],
+    "HasAbstract": 1,
+    "PmcRefCount": 38,
+    "FullJournalName": "Genome research",
+    "ELocationID": "",
+    "SO": "2007 Mar;17(3):311-9"
+  },
+  {
+    "Item": [],
+    "Id": "37492310",
+    "PubDate": "2023 Jul-Aug",
+    "EPubDate": "",
+    "Source": "Pak J Med Sci",
+    "AuthorList": [
+      "Jabeen I",
+      "Usman T",
+      "Asad M",
+      "Qureshi A",
+      "Waqar MA"
+    ],
+    "LastAuthor": "Waqar MA",
+    "Title": "Evaluation of postgraduate family medicine trainee's knowledge and attitude following an online Educational Module in Palliative Care: A descriptive study.",
+    "Volume": "39",
+    "Issue": "4",
+    "Pages": "1052-1056",
+    "LangList": [
+      "English"
+    ],
+    "NlmUniqueID": "100913117",
+    "ISSN": "1682-024X",
+    "ESSN": "1681-715X",
+    "PubTypeList": [
+      "Journal Article"
+    ],
+    "RecordStatus": "PubMed",
+    "PubStatus": "ppublish",
+    "ArticleIds": {
+      "pubmed": [
+        "37492310"
+      ],
+      "medline": [],
+      "pmc": "PMC10364266",
+      "pmcid": "pmc-id: PMC10364266;",
+      "doi": "10.12669/pjms.39.4.6984",
+      "pii": "PJMS-39-1052"
+    },
+    "DOI": "10.12669/pjms.39.4.6984",
+    "History": {
+      "pubmed": [
+        "2023/07/26 06:42"
+      ],
+      "medline": [
+        "2023/07/26 06:43"
+      ],
+      "received": "2022/08/16 00:00",
+      "revised": "2023/02/22 00:00",
+      "accepted": "2023/03/18 00:00",
+      "entrez": "2023/07/26 03:49",
+      "pmc-release": "2023/07/01 00:00"
+    },
+    "References": [],
+    "HasAbstract": 1,
+    "PmcRefCount": 25,
+    "FullJournalName": "Pakistan journal of medical sciences",
+    "ELocationID": "doi: 10.12669/pjms.39.4.6984",
+    "SO": "2023 Jul-Aug;39(4):1052-1056"
+  }
+]

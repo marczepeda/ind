@@ -1,0 +1,107 @@
+NAACCR 22 items
+---------------
+[
+  {
+    "id": "reasonForNoSurgery",
+    "item": "1340",
+    "name": "Reason for No Surgery"
+  },
+  {
+    "id": "primarySite",
+    "item": "400",
+    "name": "Primary Site"
+  },
+  {
+    "id": "rxSummSurgSite9802",
+    "item": "1646",
+    "name": "RX Summ--Surg Site 98-02"
+  },
+  {
+    "id": "rxHospSurgPrimSite",
+    "item": "670",
+    "name": "RX Hosp--Surg Prim Site"
+  },
+  {
+    "id": "overRideSiteType",
+    "item": "2030",
+    "name": "Over-ride Site/Type"
+  },
+  {
+    "id": "rxHospSurgSite9802",
+    "item": "746",
+    "name": "RX Hosp--Surg Site 98-02"
+  },
+  {
+    "id": "overRideAgeSiteMorph",
+    "item": "1990",
+    "name": "Over-ride Age/Site/Morph"
+  },
+  {
+    "id": "textPrimarySiteTitle",
+    "item": "2580",
+    "name": "Text--Primary Site Title"
+  },
+  {
+    "id": "rxDateMostDefinSurg",
+    "item": "3170",
+    "name": "RX Date Mst Defn Srg"
+  },
+  {
+    "id": "rxSummSurgPrimSite",
+    "item": "1290",
+    "name": "RX Summ--Surg Prim Site"
+  },
+  {
+    "id": "siteIcdO1",
+    "item": "1960",
+    "name": "Site (73-91) ICD-O-1"
+  },
+  {
+    "id": "overRideSiteBehavior",
+    "item": "2071",
+    "name": "Over-ride Site/Behavior"
+  },
+  {
+    "id": "overRideSiteTnmStggrp",
+    "item": "1989",
+    "name": "Over-ride Site/TNM-StgGrp"
+  },
+  {
+    "id": "overRideSiteEodDxDt",
+    "item": "2072",
+    "name": "Over-ride Site/EOD/DX Dt"
+  },
+  {
+    "id": "overRideCocSiteType",
+    "item": "1987",
+    "name": "Over-ride CoC-Site/Type"
+  },
+  {
+    "id": "overRideSiteLatEod",
+    "item": "2073",
+    "name": "Over-ride Site/Lat/EOD"
+  },
+  {
+    "id": "overRideTnmStage",
+    "item": "1992",
+    "name": "Over-ride TNM Stage"
+  },
+  {
+    "id": "overRideHospseqSite",
+    "item": "1988",
+    "name": "Over-ride HospSeq/Site"
+  },
+  {
+    "id": "overRideSiteLatMorph",
+    "item": "2074",
+    "name": "Over-ride Site/Lat/Morph"
+  },
+  {
+    "id": "rxHospSurgOthRegDis",
+    "item": "674",
+    "name": "RX Hosp--Surg Oth Reg/Dis"
+  },
+  {
+    "id": "overRideIllDefineSite",
+    "i
+... [truncated] ...

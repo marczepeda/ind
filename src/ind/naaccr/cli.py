@@ -54,21 +54,21 @@ def _choose_id(rec: Dict[str, Any]) -> Optional[str]:
     )
 
 
-def add_subparser(subparsers: argparse._SubParsersAction, Formatter) -> None:
+def add_subparser(subparsers: argparse._SubParsersAction, formatter_class) -> None:
     parser = subparsers.add_parser(
         "naaccr",
         help="NAACCR Data Dictionary tools",
         description="Interact with the NAACCR Data Dictionary API",
-        formatter_class=Formatter,
+        formatter_class=formatter_class,
     )
     sub = parser.add_subparsers(dest="naaccr_cmd")
 
     # naaccr versions
-    p_versions = sub.add_parser("versions", help="List NAACCR versions", formatter_class=Formatter)
+    p_versions = sub.add_parser("versions", help="List NAACCR versions", formatter_class=formatter_class)
     p_versions.set_defaults(func=_cmd_versions)
 
     # naaccr search
-    p_search = sub.add_parser("search", help="Search data items", formatter_class=Formatter)
+    p_search = sub.add_parser("search", help="Search data items", formatter_class=formatter_class)
     p_search.add_argument("--version", required=True, help="NAACCR version (e.g., 22)")
     p_search.add_argument("--q", help="Search term (optional)")
     p_search.add_argument("--minimize", action="store_true", help='Use minimize_results="true"')
@@ -77,19 +77,19 @@ def add_subparser(subparsers: argparse._SubParsersAction, Formatter) -> None:
     p_search.set_defaults(func=_cmd_search)
 
     # naaccr item
-    p_item = sub.add_parser("item", help="Get a single data item", formatter_class=Formatter)
+    p_item = sub.add_parser("item", help="Get a single data item", formatter_class=formatter_class)
     p_item.add_argument("--version", required=True, help="NAACCR version (e.g., 22)")
     p_item.add_argument("--id", required=True, help="ItemNumber or XmlNaaccrId")
     p_item.set_defaults(func=_cmd_item)
 
     # naaccr attr-history
-    p_attr = sub.add_parser("attr-history", help="Get attribute history for an item", formatter_class=Formatter)
+    p_attr = sub.add_parser("attr-history", help="Get attribute history for an item", formatter_class=formatter_class)
     p_attr.add_argument("--id", required=True, help="ItemNumber or XmlNaaccrId")
     p_attr.add_argument("--attribute", required=True, help="Attribute to query (e.g., ItemLength)")
     p_attr.set_defaults(func=_cmd_attr_history)
 
     # naaccr op-history
-    p_ops = sub.add_parser("op-history", help="Get operation history for an item in a version", formatter_class=Formatter)
+    p_ops = sub.add_parser("op-history", help="Get operation history for an item in a version", formatter_class=formatter_class)
     p_ops.add_argument("--version", required=True, help="NAACCR version (e.g., 22)")
     p_ops.add_argument("--id", required=True, help="ItemNumber or XmlNaaccrId")
     p_ops.set_defaults(func=_cmd_op_history)

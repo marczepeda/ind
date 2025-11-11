@@ -27,7 +27,8 @@ dependencies = [
   "rich",
   "rich-argparse",
   "pytest",
-  "pyyaml"
+  "pyyaml",
+  "biopython"
 ]
 
 classifiers = [

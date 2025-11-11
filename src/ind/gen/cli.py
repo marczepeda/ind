@@ -1,411 +1,618 @@
-# src/ind/gen/cli.py
-from __future__ import annotations
+''' 
+src/ind/gen/cli.py              Command Line Interface for IND General module
+├── __init__.py                 Initializer
+├── io.py                       Input/Output module
+├── plot.py                     Plot module
+├── stat.py                     Statistical Analysis module
+├── tidy.py                     Tidy Data module
+├── com.py                      Command-line Interaction module
+└── image.py                    Image Processing module
+
+Usage:
+[Plot subparser methods]
+- add_common_plot_scat_args(subparser): Add common arguments for scatter plot related graphs
+- add_common_plot_cat_args(subparser): Add common arguments for category dependent graphs
+- add_common_plot_dist_args(subparser): Add common arguments for distribution graphs
+- add_common_plot_heat_args(subparser): Add common arguments for heatmap graphs
+- add_common_plot_stack_args(subparser): Add common arguments for stacked bar plot
+- add_common_plot_vol_args(subparser): Add common arguments for volcano plot
+
+[Main subparser method]
+- add_subparser(): Attach all gen-related subparsers to the top-level CLI.
+'''
 import argparse
 import datetime
+import sys # might use later
+from rich import print as rprint # might use later
 
-from . import plot as p
-from . import stat as st
-from . import io
+from . import com, io, plot as p, stat as st
+from ..utils import parse_tuple_int, parse_tuple_float
 
-# --- local helpers ---
-def parse_tuple_int(arg: str):
-    try:
-        return tuple(map(int, arg.split(',')))
-    except Exception:
-        raise argparse.ArgumentTypeError(f"{arg} must be formatted as 'int,int,...'")
+# Plot subparser methods
+def add_common_plot_scat_args(subparser):
+    '''
+    add_common_plot_scat_args(subparser): Add common arguments for scatter plot related graphs
+    '''
+    # scat(): Required arguments
+    subparser.add_argument("--df", help="Input dataframe file path", type=str, required=True)
+    subparser.add_argument("--x", help="X-axis column", type=str, required=True)
+    subparser.add_argument("--y", help="Y-axis column", type=str, required=True)
 
-def parse_tuple_float(arg: str):
-    try:
-        return tuple(map(float, arg.split(',')))
-    except Exception:
-        raise argparse.ArgumentTypeError(f"{arg} must be formatted as 'float,float,...'")
+    # Optional core arguments
+    subparser.add_argument("--cols", type=str, help="Color column name")
+    subparser.add_argument("--cols_ord", nargs="+", help="Column order (list of values)")
+    subparser.add_argument("--cols_exclude", nargs="+", help="Columns to exclude from coloring")
+    subparser.add_argument("--stys", type=str, help="Style column name")
 
-# ---- plot subparser helpers ----
-def add_common_plot_scat_args(sp):
-    sp.add_argument("--df", type=str, required=True, help="Input dataframe file path")
-    sp.add_argument("--x", type=str, required=True, help="X-axis column")
-    sp.add_argument("--y", type=str, required=True, help="Y-axis column")
-    sp.add_argument("--cols", type=str, help="Color column name")
-    sp.add_argument("--cols_ord", nargs="+", help="Column order (list of values)")
-    sp.add_argument("--cols_exclude", nargs="+", help="Columns to exclude from coloring")
-    sp.add_argument("--stys", type=str, help="Style column name")
-    sp.add_argument("--dir", type=str, default="./out", help="Output directory path")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_scat.png', help="Output file name")
-    sp.add_argument("--palette_or_cmap", type=str, default="colorblind", help="Seaborn palette or matplotlib colormap")
-    sp.add_argument("--edgecol", type=str, default="black", help="Edge color for scatter points")
-    sp.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size as width,height")
-    sp.add_argument("--title", type=str, default="", help="Plot title")
-    sp.add_argument("--title_size", type=int, default=18, help="Plot title font size")
-    sp.add_argument("--title_weight", type=str, default="bold", help="Plot title font weight")
-    sp.add_argument("--title_font", type=str, default="Arial", help="Font family for the title")
-    sp.add_argument("--x_axis", type=str, default="", help="X-axis label")
-    sp.add_argument("--x_axis_size", type=int, default=12, help="X-axis label font size")
-    sp.add_argument("--x_axis_weight", type=str, default="bold", help="X-axis label font weight")
-    sp.add_argument("--x_axis_font", type=str, default="Arial", help="X-axis label font family")
-    sp.add_argument("--x_axis_scale", type=str, default="linear", help="X-axis scale")
-    sp.add_argument("--x_axis_dims", type=parse_tuple_int, default=(0,0), help="X-axis range start,end")
-    sp.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle of X-axis tick labels")
-    sp.add_argument("--x_ticks_font", type=str, default="Arial", help="Font for X-axis ticks")
-    sp.add_argument("--x_ticks", nargs="+", help="Specific X ticks")
-    sp.add_argument("--y_axis", type=str, default="", help="Y-axis label")
-    sp.add_argument("--y_axis_size", type=int, default=12, help="Y-axis label font size")
-    sp.add_argument("--y_axis_weight", type=str, default="bold", help="Y-axis label font weight")
-    sp.add_argument("--y_axis_font", type=str, default="Arial", help="Font for Y-axis label")
-    sp.add_argument("--y_axis_scale", type=str, default="linear", help="Y-axis scale")
-    sp.add_argument("--y_axis_dims", type=parse_tuple_int, default=(0,0), help="Y-axis range start,end")
-    sp.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle of Y-axis tick labels")
-    sp.add_argument("--y_ticks_font", type=str, default="Arial", help="Font for Y-axis ticks")
-    sp.add_argument("--y_ticks", nargs="+", help="Specific Y ticks")
-    sp.add_argument("--legend_title", type=str, default="", help="Legend title")
-    sp.add_argument("--legend_title_size", type=int, default=12, help="Legend title font size")
-    sp.add_argument("--legend_size", type=int, default=9, help="Legend font size")
-    sp.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1,1), help="Legend bbox_to_anchor")
-    sp.add_argument("--legend_loc", type=str, default="upper left", help="Legend location")
-    sp.add_argument("--legend_items", type=parse_tuple_int, default=(0,0), help="Legend layout helper")
-    sp.add_argument("--legend_ncol", type=int, default=1, help="Legend columns")
-    sp.add_argument("--show", action="store_true", default=False, help="Show the plot")
-    sp.add_argument("--space_capitalize", action="store_true", help="Capitalize labels and replace underscores")
+    subparser.add_argument("--dir", help="Output directory path", type=str, default='./out')
+    subparser.add_argument("--file", help="Output file name", type=str, required=False, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_scat.png')
+    subparser.add_argument("--palette_or_cmap", type=str, default="colorblind", help="Seaborn palette or matplotlib colormap")
+    subparser.add_argument("--edgecol", type=str, default="black", help="Edge color for scatter points")
 
-def add_common_plot_cat_args(sp):
-    sp.add_argument("--df", type=str, required=True, help="Input dataframe file path")
-    sp.add_argument("--x", type=str, default="", help="X-axis column name")
-    sp.add_argument("--y", type=str, default="", help="Y-axis column name")
-    sp.add_argument("--cols", type=str, help="Color column for grouping")
-    sp.add_argument("--cols_ord", nargs="+", help="Color column values order")
-    sp.add_argument("--cols_exclude", nargs="+", help="Color values to exclude")
-    sp.add_argument("--file", type=str, default="./out", help="Output filename")
-    sp.add_argument("--dir", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_cat.png', help="Output directory")
-    sp.add_argument("--palette_or_cmap", type=str, default="colorblind", help="Palette or colormap")
-    sp.add_argument("--edgecol", type=str, default="black", help="Edge color")
-    sp.add_argument("--lw", type=int, default=1, help="Edge line width")
-    sp.add_argument("--errorbar", type=str, default="sd", help="Error bar type")
-    sp.add_argument("--errwid", type=float, default=1, help="Error bar width")
-    sp.add_argument("--errcap", type=float, default=0.1, help="Error bar cap")
-    sp.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size")
-    sp.add_argument("--title", type=str, default="", help="Title")
-    sp.add_argument("--title_size", type=int, default=18, help="Title size")
-    sp.add_argument("--title_weight", type=str, default="bold", help="Title weight")
-    sp.add_argument("--title_font", type=str, default="Arial", help="Title font")
-    sp.add_argument("--x_axis", type=str, default="", help="X-axis label")
-    sp.add_argument("--x_axis_size", type=int, default=12, help="X-axis size")
-    sp.add_argument("--x_axis_weight", type=str, default="bold", help="X-axis weight")
-    sp.add_argument("--x_axis_font", type=str, default="Arial", help="X-axis font")
-    sp.add_argument("--x_axis_scale", type=str, default="linear", help="X scale")
-    sp.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0,0), help="X range start,end")
-    sp.add_argument("--x_ticks_rot", type=int, default=0, help="X tick rotation")
-    sp.add_argument("--x_ticks_font", type=str, default="Arial", help="X tick font")
-    sp.add_argument("--x_ticks", nargs="+", help="X ticks")
-    sp.add_argument("--y_axis", type=str, default="", help="Y-axis label")
-    sp.add_argument("--y_axis_size", type=int, default=12, help="Y-axis size")
-    sp.add_argument("--y_axis_weight", type=str, default="bold", help="Y-axis weight")
-    sp.add_argument("--y_axis_font", type=str, default="Arial", help="Y-axis font")
-    sp.add_argument("--y_axis_scale", type=str, default="linear", help="Y scale")
-    sp.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0,0), help="Y range start,end")
-    sp.add_argument("--y_ticks_rot", type=int, default=0, help="Y tick rotation")
-    sp.add_argument("--y_ticks_font", type=str, default="Arial", help="Y tick font")
-    sp.add_argument("--y_ticks", nargs="+", help="Y ticks")
-    sp.add_argument("--legend_title", type=str, default="", help="Legend title")
-    sp.add_argument("--legend_title_size", type=int, default=12, help="Legend title size")
-    sp.add_argument("--legend_size", type=int, default=9, help="Legend size")
-    sp.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1,1), help="Legend bbox_to_anchor")
-    sp.add_argument("--legend_loc", type=str, default="upper left", help="Legend loc")
-    sp.add_argument("--legend_items", type=parse_tuple_int, default=(0,0), help="Legend layout helper")
-    sp.add_argument("--legend_ncol", type=int, default=1, help="Legend ncol")
-    sp.add_argument("--show", action="store_true", default=False, help="Show")
-    sp.add_argument("--space_capitalize", action="store_true", help="Capitalize/space labels")
+    # Figure appearance
+    subparser.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size as a tuple: width,height")
+    subparser.add_argument("--title", type=str, default="", help="Plot title")
+    subparser.add_argument("--title_size", type=int, default=18, help="Plot title font size")
+    subparser.add_argument("--title_weight", type=str, default="bold", help="Plot title font weight (e.g., bold, normal)")
+    subparser.add_argument("--title_font", type=str, default="Arial", help="Font family for the title")
 
-def add_common_plot_dist_args(sp):
-    sp.add_argument("--df", type=str, required=True, help="Input dataframe file path")
-    sp.add_argument("--x", type=str, required=True, help="X-axis column name")
-    sp.add_argument("--dir", type=str, default="./out", help="Output directory")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_dist.png', help="Output file name")
-    sp.add_argument("--cols", type=str, help="Color column name for grouping")
-    sp.add_argument("--cols_ord", nargs="+", help="Order for color column values")
-    sp.add_argument("--cols_exclude", nargs="+", help="Color values to exclude")
-    sp.add_argument("--bins", type=int, default=40, help="Histogram bins")
-    sp.add_argument("--log10_low", type=int, default=0, help="Log10 lower bound")
-    sp.add_argument("--palette_or_cmap", type=str, default="colorblind", help="Palette or cmap")
-    sp.add_argument("--edgecol", type=str, default="black", help="Edge color")
-    sp.add_argument("--lw", type=int, default=1, help="Line width")
-    sp.add_argument("--ht", type=float, default=1.5, help="Height")
-    sp.add_argument("--asp", type=int, default=5, help="Aspect ratio")
-    sp.add_argument("--tp", type=float, default=0.8, help="Top padding")
-    sp.add_argument("--hs", type=int, default=0, help="Horizontal spacing")
-    sp.add_argument("--des", action="store_true", default=False, help="Despine")
-    sp.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size")
-    sp.add_argument("--title", type=str, default="", help="Title")
-    sp.add_argument("--title_size", type=int, default=18, help="Title size")
-    sp.add_argument("--title_weight", type=str, default="bold", help="Title weight")
-    sp.add_argument("--title_font", type=str, default="Arial", help="Title font")
-    sp.add_argument("--x_axis", type=str, default="", help="X-axis label")
-    sp.add_argument("--x_axis_size", type=int, default=12, help="X-axis size")
-    sp.add_argument("--x_axis_weight", type=str, default="bold", help="X-axis weight")
-    sp.add_argument("--x_axis_font", type=str, default="Arial", help="X-axis font")
-    sp.add_argument("--x_axis_scale", type=str, default="linear", help="X scale")
-    sp.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0,0), help="X range start,end")
-    sp.add_argument("--x_ticks_rot", type=int, default=0, help="X tick rotation")
-    sp.add_argument("--x_ticks_font", type=str, default="Arial", help="X tick font")
-    sp.add_argument("--x_ticks", nargs="+", help="X ticks")
-    sp.add_argument("--y_axis", type=str, default="", help="Y-axis label")
-    sp.add_argument("--y_axis_size", type=int, default=12, help="Y-axis size")
-    sp.add_argument("--y_axis_weight", type=str, default="bold", help="Y-axis weight")
-    sp.add_argument("--y_axis_font", type=str, default="Arial", help="Y-axis font")
-    sp.add_argument("--y_axis_scale", type=str, default="linear", help="Y scale")
-    sp.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0,0), help="Y range start,end")
-    sp.add_argument("--y_ticks_rot", type=int, default=0, help="Y tick rotation")
-    sp.add_argument("--y_ticks_font", type=str, default="Arial", help="Y tick font")
-    sp.add_argument("--y_ticks", nargs="+", help="Y ticks")
-    sp.add_argument("--legend_title", type=str, default="", help="Legend title")
-    sp.add_argument("--legend_title_size", type=int, default=12, help="Legend title size")
-    sp.add_argument("--legend_size", type=int, default=9, help="Legend size")
-    sp.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1,1), help="Legend bbox_to_anchor")
-    sp.add_argument("--legend_loc", type=str, default="upper left", help="Legend loc")
-    sp.add_argument("--legend_items", type=parse_tuple_int, default=(0,0), help="Legend layout helper")
-    sp.add_argument("--legend_ncol", type=int, default=1, help="Legend ncol")
-    sp.add_argument("--show", action="store_true", default=False, help="Show plot")
-    sp.add_argument("--space_capitalize", action="store_true", help="Capitalize/space labels")
+    # X-axis settings
+    subparser.add_argument("--x_axis", type=str, default="", help="X-axis label")
+    subparser.add_argument("--x_axis_size", type=int, default=12, help="X-axis label font size")
+    subparser.add_argument("--x_axis_weight", type=str, default="bold", help="X-axis label font weight (e.g., bold)")
+    subparser.add_argument("--x_axis_font", type=str, default="Arial", help="X-axis label font family")
+    subparser.add_argument("--x_axis_scale", type=str, default="linear", help="X-axis scale: linear, log, etc.")
+    subparser.add_argument("--x_axis_dims", type=parse_tuple_int, default=(0,0), help="X-axis range as a tuple: start,end")
+    subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle of X-axis tick labels")
+    subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
+    subparser.add_argument("--x_ticks", nargs="+", help="Specific tick values for X-axis")
 
-def add_common_plot_heat_args(sp):
-    sp.add_argument("--df", type=str, required=True, help="Input dataframe file path")
-    sp.add_argument("--x", type=str, help="X column to pivot tidy DF")
-    sp.add_argument("--y", type=str, help="Y column to pivot tidy DF")
-    sp.add_argument("--vars", type=str, help="Variable column to split tidy DF")
-    sp.add_argument("--vals", type=str, help="Value column to populate pivots")
-    sp.add_argument("--vals_dims", type=parse_tuple_float, help="Value limits vmin,vmax")
-    sp.add_argument("--dir", type=str, default="./out", help="Output directory")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_heat.png', help="Output filename")
-    sp.add_argument("--edgecol", type=str, default="black", help="Cell edge color")
-    sp.add_argument("--lw", type=int, default=1, help="Cell border width")
-    sp.add_argument("--annot", action="store_true", default=False, help="Annotate cells")
-    sp.add_argument("--cmap", type=str, default="Reds", help="Matplotlib colormap")
-    sp.add_argument("--sq", action="store_true", default=False, help="Square cells")
-    sp.add_argument("--cbar", action="store_true", default=False, help="Show colorbar")
-    sp.add_argument("--title", type=str, default="", help="Title")
-    sp.add_argument("--title_size", type=int, default=18, help="Title size")
-    sp.add_argument("--title_weight", type=str, default="bold", help="Title weight")
-    sp.add_argument("--title_font", type=str, default="Arial", help="Title font")
-    sp.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size")
-    sp.add_argument("--x_axis", type=str, default="", help="X label")
-    sp.add_argument("--x_axis_size", type=int, default=12, help="X label size")
-    sp.add_argument("--x_axis_weight", type=str, default="bold", help="X label weight")
-    sp.add_argument("--x_axis_font", type=str, default="Arial", help="X label font")
-    sp.add_argument("--x_ticks_rot", type=int, default=0, help="X ticks rotation")
-    sp.add_argument("--x_ticks_font", type=str, default="Arial", help="X ticks font")
-    sp.add_argument("--y_axis", type=str, default="", help="Y label")
-    sp.add_argument("--y_axis_size", type=int, default=12, help="Y label size")
-    sp.add_argument("--y_axis_weight", type=str, default="bold", help="Y label weight")
-    sp.add_argument("--y_axis_font", type=str, default="Arial", help="Y label font")
-    sp.add_argument("--y_ticks_rot", type=int, default=0, help="Y ticks rotation")
-    sp.add_argument("--y_ticks_font", type=str, default="Arial", help="Y ticks font")
-    sp.add_argument("--show", action="store_true", default=False, help="Show")
-    sp.add_argument("--space_capitalize", action="store_true", help="Capitalize/space labels")
+    # Y-axis settings
+    subparser.add_argument("--y_axis", type=str, default="", help="Y-axis label")
+    subparser.add_argument("--y_axis_size", type=int, default=12, help="Y-axis label font size")
+    subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Y-axis label font weight")
+    subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Y-axis label font family")
+    subparser.add_argument("--y_axis_scale", type=str, default="linear", help="Y-axis scale: linear, log, etc.")
+    subparser.add_argument("--y_axis_dims", type=parse_tuple_int, default=(0,0), help="Y-axis range as a tuple: start,end")
+    subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle of Y-axis tick labels")
+    subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
+    subparser.add_argument("--y_ticks", nargs="+", help="Specific tick values for Y-axis")
 
-def add_common_plot_stack_args(sp):
-    sp.add_argument("--df", type=str, required=True, help="Input dataframe file path")
-    sp.add_argument("--x", type=str, help="X column")
-    sp.add_argument("--y", type=str, help="Y column")
-    sp.add_argument("--cols", type=str, help="Color/stack column")
-    sp.add_argument("--dir", type=str, default="./out", help="Output directory")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_stack.png', help="Output filename")
-    sp.add_argument("--cutoff_group", type=str, default=argparse.SUPPRESS, help="Group column for cutoff")
-    sp.add_argument("--cutoff_value", type=float, default=0, help="Keep values greater than this")
-    sp.add_argument("--cutoff_remove", dest="cutoff_keep", action="store_false", default=True, help="Remove values below cutoff")
-    sp.add_argument("--cols_ord", nargs="+", help="Order of color values")
-    sp.add_argument("--x_ord", nargs="+", help="Custom order of X categories")
-    sp.add_argument("--palette_or_cmap", type=str, default="Set2", help="Palette or cmap")
-    sp.add_argument("--errcap", type=int, default=4, help="Error bar caps")
-    sp.add_argument("--vertical", action="store_true", default=False, help="Vertical layout")
-    sp.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size")
-    sp.add_argument("--title", type=str, default="", help="Title")
-    sp.add_argument("--title_size", type=int, default=18, help="Title size")
-    sp.add_argument("--title_weight", type=str, default="bold", help="Title weight")
-    sp.add_argument("--title_font", type=str, default="Arial", help="Title font")
-    sp.add_argument("--x_axis", type=str, default="", help="X label")
-    sp.add_argument("--x_axis_size", type=int, default=12, help="X label size")
-    sp.add_argument("--x_axis_weight", type=str, default="bold", help="X label weight")
-    sp.add_argument("--x_axis_font", type=str, default="Arial", help="X label font")
-    sp.add_argument("--x_ticks_rot", type=int, help="X tick rotation")
-    sp.add_argument("--x_ticks_font", type=str, default="Arial", help="X tick font")
-    sp.add_argument("--y_axis", type=str, default="", help="Y label")
-    sp.add_argument("--y_axis_size", type=int, default=12, help="Y label size")
-    sp.add_argument("--y_axis_weight", type=str, default="bold", help="Y label weight")
-    sp.add_argument("--y_axis_font", type=str, default="Arial", help="Y label font")
-    sp.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0,0), help="Y range start,end")
-    sp.add_argument("--y_ticks_rot", type=int, help="Y tick rotation")
-    sp.add_argument("--y_ticks_font", type=str, default="Arial", help="Y tick font")
-    sp.add_argument("--legend_title", type=str, default="", help="Legend title")
-    sp.add_argument("--legend_title_size", type=int, default=12, help="Legend title size")
-    sp.add_argument("--legend_size", type=int, default=12, help="Legend size")
-    sp.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1,1), help="Legend bbox_to_anchor")
-    sp.add_argument("--legend_loc", type=str, default="upper left", help="Legend location")
-    sp.add_argument("--legend_ncol", type=int, default=1, help="Legend columns")
-    sp.add_argument("--show", action="store_true", default=False, help="Show")
-    sp.add_argument("--space_capitalize", action="store_true", help="Capitalize/space labels")
+    # Legend settings
+    subparser.add_argument("--legend_title", type=str, default="", help="Legend title")
+    subparser.add_argument("--legend_title_size", type=int, default=12, help="Legend title font size")
+    subparser.add_argument("--legend_size", type=int, default=9, help="Legend font size")
+    subparser.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1,1), help="Bounding box anchor position for legend")
+    subparser.add_argument("--legend_loc", type=str, default="upper left", help="Location of the legend in the plot")
+    subparser.add_argument("--legend_items", type=parse_tuple_int, default=(0,0), help="Legend item count as a tuple (used for layout)")
+    subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in legend")
 
-def add_common_plot_vol_args(sp):
-    sp.add_argument("--df", type=str, help="Input dataframe file path")
-    sp.add_argument("--x", type=str, help="X-axis column name")
-    sp.add_argument("--y", type=str, help="Y-axis column name")
-    sp.add_argument("--stys", type=str, help="Style column")
-    sp.add_argument("--size", type=str, help="Size column")
-    sp.add_argument("--size_dims", type=parse_tuple_float, help="Size range min,max")
-    sp.add_argument("--label", type=str, help="Label column")
-    sp.add_argument("--FC_threshold", type=float, default=2, help="Fold change threshold")
-    sp.add_argument("--pval_threshold", type=float, default=0.05, help="P-value threshold")
-    sp.add_argument("--dir", type=str, default="./out", help="Output directory")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_vol.png', help="Output file name")
-    sp.add_argument("--color", type=str, default="lightgray", help="Non-significant point color")
-    sp.add_argument("--alpha", type=float, default=0.5, help="Non-significant alpha")
-    sp.add_argument("--edgecol", type=str, default="black", help="Point edge color")
-    sp.add_argument("--vertical", action="store_true", default=False, help="Vertical layout")
-    sp.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size")
-    sp.add_argument("--title", type=str, default="", help="Title")
-    sp.add_argument("--title_size", type=int, default=18, help="Title size")
-    sp.add_argument("--title_weight", type=str, default="bold", help="Title weight")
-    sp.add_argument("--title_font", type=str, default="Arial", help="Title font")
-    sp.add_argument("--x_axis", type=str, default="", help="X label")
-    sp.add_argument("--x_axis_size", type=int, default=12, help="X label size")
-    sp.add_argument("--x_axis_weight", type=str, default="bold", help="X label weight")
-    sp.add_argument("--x_axis_font", type=str, default="Arial", help="X label font")
-    sp.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0,0), help="X range min,max")
-    sp.add_argument("--x_ticks_rot", type=int, default=0, help="X tick rotation")
-    sp.add_argument("--x_ticks_font", type=str, default="Arial", help="X tick font")
-    sp.add_argument("--x_ticks", nargs="+", help="X ticks")
-    sp.add_argument("--y_axis", type=str, default="", help="Y label")
-    sp.add_argument("--y_axis_size", type=int, default=12, help="Y label size")
-    sp.add_argument("--y_axis_weight", type=str, default="bold", help="Y label weight")
-    sp.add_argument("--y_axis_font", type=str, default="Arial", help="Y label font")
-    sp.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0,0), help="Y range min,max")
-    sp.add_argument("--y_ticks_rot", type=int, default=0, help="Y tick rotation")
-    sp.add_argument("--y_ticks_font", type=str, default="Arial", help="Y tick font")
-    sp.add_argument("--y_ticks", nargs="+", help="Y ticks")
-    sp.add_argument("--legend_title", type=str, default="", help="Legend title")
-    sp.add_argument("--legend_title_size", type=int, default=12, help="Legend title size")
-    sp.add_argument("--legend_size", type=int, default=9, help="Legend size")
-    sp.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1,1), help="Legend bbox_to_anchor")
-    sp.add_argument("--legend_loc", type=str, default="upper left", help="Legend location")
-    sp.add_argument("--legend_items", type=parse_tuple_int, default=(0,0), help="Legend layout helper")
-    sp.add_argument("--legend_ncol", type=int, default=1, help="Legend columns")
-    sp.add_argument("--display_size", action="store_true", default=False, help="Annotate sizes")
-    sp.add_argument("--display_labels", action="store_true", default=False, help="Show text labels")
-    sp.add_argument("--return_df", action="store_true", default=False, help="Return annotated DataFrame")
-    sp.add_argument("--show", action="store_true", default=False, help="Show")
-    sp.add_argument("--space_capitalize", action="store_true", help="Capitalize/space items")
+    # Display and formatting
+    subparser.add_argument("--show", action="store_true", help="Show the plot", default=False)
+    subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize label/legend strings and replace underscores with spaces")
 
-# --- public API used by main.py ---
-def add_subparser(subparsers: argparse._SubParsersAction, formatter):
+def add_common_plot_cat_args(subparser):
+    '''
+    add_common_plot_cat_args(subparser): Add common arguments for category dependent graphs
+    '''
+    # cat(): Required arguments
+    subparser.add_argument("--df", help="Input dataframe file path", type=str, required=True)
+
+    # Optional core arguments
+    subparser.add_argument("--x", help="X-axis column name", type=str, default="")
+    subparser.add_argument("--y", help="Y-axis column name", type=str, default="")
+    subparser.add_argument("--cols", type=str, help="Color column name for grouping")
+    subparser.add_argument("--cols_ord", nargs="+", help="Color column values order")
+    subparser.add_argument("--cols_exclude", nargs="+", help="Color column values to exclude")
+
+    subparser.add_argument("--file", type=str, help="Output filename", default='./out')
+    subparser.add_argument("--dir", type=str, help="Output directory", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_cat.png')
+    subparser.add_argument("--palette_or_cmap", type=str, default="colorblind", help="Seaborn color palette or matplotlib colormap")
+    subparser.add_argument("--edgecol", type=str, default="black", help="Edge color for markers")
+
+    # Error bar and style options
+    subparser.add_argument("--lw", type=int, default=1, help="Line width for plot edges")
+    subparser.add_argument("--errorbar", type=str, default="sd", help="Error bar type: sd (standard deviation), etc.")
+    subparser.add_argument("--errwid", type=float, default=1, help="Width of the error bars")
+    subparser.add_argument("--errcap", type=float, default=0.1, help="Cap size on error bars")
+
+    # Figure appearance
+    subparser.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size formatted 'width,height'")
+    subparser.add_argument("--title", type=str, default="", help="Plot title text")
+    subparser.add_argument("--title_size", type=int, default=18, help="Font size of the plot title")
+    subparser.add_argument("--title_weight", type=str, default="bold", help="Font weight of the plot title (e.g., bold, normal)")
+    subparser.add_argument("--title_font", type=str, default="Arial", help="Font family for the plot title")
+
+    # X-axis settings
+    subparser.add_argument("--x_axis", type=str, default="", help="X-axis label text")
+    subparser.add_argument("--x_axis_size", type=int, default=12, help="Font size for the X-axis label")
+    subparser.add_argument("--x_axis_weight", type=str, default="bold", help="Font weight for the X-axis label")
+    subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for the X-axis label")
+    subparser.add_argument("--x_axis_scale", type=str, default="linear", help="Scale of X-axis (e.g., linear, log)")
+    subparser.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0, 0), help="X-axis range as tuple: start,end")
+    subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle for X-axis tick labels")
+    subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
+    subparser.add_argument("--x_ticks", nargs="+", help="Explicit tick values for X-axis")
+
+    # Y-axis settings
+    subparser.add_argument("--y_axis", type=str, default="", help="Y-axis label text")
+    subparser.add_argument("--y_axis_size", type=int, default=12, help="Font size for the Y-axis label")
+    subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Font weight for the Y-axis label")
+    subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for the Y-axis label")
+    subparser.add_argument("--y_axis_scale", type=str, default="linear", help="Scale of Y-axis (e.g., linear, log)")
+    subparser.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0, 0), help="Y-axis range as tuple: start,end")
+    subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle for Y-axis tick labels")
+    subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
+    subparser.add_argument("--y_ticks", nargs="+", help="Explicit tick values for Y-axis")
+
+    # Legend settings
+    subparser.add_argument("--legend_title", type=str, default="", help="Title for the legend")
+    subparser.add_argument("--legend_title_size", type=int, default=12, help="Font size for the legend title")
+    subparser.add_argument("--legend_size", type=int, default=9, help="Font size for legend items")
+    subparser.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1, 1), help="Anchor position of the legend bounding box")
+    subparser.add_argument("--legend_loc", type=str, default="upper left", help="Location of the legend on the plot")
+    subparser.add_argument("--legend_items", type=parse_tuple_int, default=(0, 0), help="Tuple for legend item layout")
+    subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in the legend")
+
+    # Display and formatting
+    subparser.add_argument("--show", action="store_true", help="Show the plot in a window", default=False)
+    subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize labels and replace underscores with spaces")
+
+def add_common_plot_dist_args(subparser):
+    '''
+    add_common_plot_dist_args(subparser): Add common arguments for distribution graphs
+    '''
+    # dist(): Required argument
+    subparser.add_argument("--df", help="Input dataframe file path", type=str, required=True)
+    subparser.add_argument("--x", type=str, help="X-axis column name", required=True)
+
+    # File output
+    subparser.add_argument("--dir", type=str, help="Output directory", default='./out')
+    subparser.add_argument("--file", type=str, help="Output file name", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_dist.png')
+
+    # Optional core arguments
+    subparser.add_argument("--cols", type=str, help="Color column name for grouping")
+    subparser.add_argument("--cols_ord", nargs="+", help="Custom order for color column values")
+    subparser.add_argument("--cols_exclude", nargs="+", help="Color column values to exclude")
+
+    # Plot customization
+    subparser.add_argument("--bins", type=int, default=40, help="Number of bins for histogram")
+    subparser.add_argument("--log10_low", type=int, default=0, help="Log10 scale lower bound (e.g., 1 = 10^1 = 10)")
+    subparser.add_argument("--palette_or_cmap", type=str, default="colorblind", help="Seaborn color palette or matplotlib colormap")
+    subparser.add_argument("--edgecol", type=str, default="black", help="Edge color of histogram bars")
+    subparser.add_argument("--lw", type=int, default=1, help="Line width for edges")
+    subparser.add_argument("--ht", type=float, default=1.5, help="Height of the plot")
+    subparser.add_argument("--asp", type=int, default=5, help="Aspect ratio of the plot")
+    subparser.add_argument("--tp", type=float, default=0.8, help="Top padding space")
+    subparser.add_argument("--hs", type=int, default=0, help="Horizontal spacing between plots (if faceted)")
+    subparser.add_argument("--des", action="store_true", help="Remove plot spines (despine)", default=False)
+
+    # Figure appearance
+    subparser.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size formatted as 'width,height'")
+    subparser.add_argument("--title", type=str, default="", help="Plot title text")
+    subparser.add_argument("--title_size", type=int, default=18, help="Plot title font size")
+    subparser.add_argument("--title_weight", type=str, default="bold", help="Plot title font weight (e.g., bold, normal)")
+    subparser.add_argument("--title_font", type=str, default="Arial", help="Font family for the plot title")
+
+    # X-axis
+    subparser.add_argument("--x_axis", type=str, default="", help="Label for the X-axis")
+    subparser.add_argument("--x_axis_size", type=int, default=12, help="Font size for X-axis label")
+    subparser.add_argument("--x_axis_weight", type=str, default="bold", help="Font weight for X-axis label")
+    subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for X-axis label")
+    subparser.add_argument("--x_axis_scale", type=str, default="linear", help="X-axis scale (e.g., linear, log)")
+    subparser.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0, 0), help="X-axis range as tuple: start,end")
+    subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle for X-axis tick labels")
+    subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
+    subparser.add_argument("--x_ticks", nargs="+", help="Explicit tick values for X-axis")
+
+    # Y-axis
+    subparser.add_argument("--y_axis", type=str, default="", help="Label for the Y-axis")
+    subparser.add_argument("--y_axis_size", type=int, default=12, help="Font size for Y-axis label")
+    subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Font weight for Y-axis label")
+    subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for Y-axis label")
+    subparser.add_argument("--y_axis_scale", type=str, default="linear", help="Y-axis scale (e.g., linear, log)")
+    subparser.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0, 0), help="Y-axis range as tuple: start,end")
+    subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle for Y-axis tick labels")
+    subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
+    subparser.add_argument("--y_ticks", nargs="+", help="Explicit tick values for Y-axis")
+
+    # Legend
+    subparser.add_argument("--legend_title", type=str, default="", help="Title text for the legend")
+    subparser.add_argument("--legend_title_size", type=int, default=12, help="Font size of the legend title")
+    subparser.add_argument("--legend_size", type=int, default=9, help="Font size for legend items")
+    subparser.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1, 1), help="Legend bbox anchor position")
+    subparser.add_argument("--legend_loc", type=str, default="upper left", help="Legend location on the plot")
+    subparser.add_argument("--legend_items", type=parse_tuple_int, default=(0, 0), help="Tuple for legend layout items")
+    subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in the legend")
+
+    # Final display
+    subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
+    subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space legend/label values", default=False)
+
+def add_common_plot_heat_args(subparser):
+    '''
+    add_common_plot_heat_args(subparser): Add common arguments for heatmap graphs
+    '''
+    # Required arguments
+    subparser.add_argument("--df", help="Input dataframe file path", type=str, required=True)
+
+    # Optional arguments
+    subparser.add_argument("--x", type=str, help="X-axis column name to pivot tidy-formatted dataframe into matrix format")
+    subparser.add_argument("--y", type=str, help="Y-axis column name to pivot tidy-formatted dataframe into matrix format")
+    subparser.add_argument("--vars", type=str, help="Variable column name to split tidy-formatted dataframe into a dictionary of pivoted dataframes")
+    subparser.add_argument("--vals", type=str, help="Value column name to populate pivoted dataframes")
+    subparser.add_argument("--vals_dims", type=parse_tuple_float, help="Value column limits formatted as 'vmin,vmax'")
+
+    subparser.add_argument("--dir", type=str, help="Output directory path", default='./out')
+    subparser.add_argument("--file", type=str, help="Output filename", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_heat.png')
+    subparser.add_argument("--edgecol", type=str, default="black", help="Color of cell edges")
+    subparser.add_argument("--lw", type=int, default=1, help="Line width for cell borders")
+
+    subparser.add_argument("--annot", action="store_true", help="Display cell values as annotations", default=False)
+    subparser.add_argument("--cmap", type=str, default="Reds", help="Matplotlib colormap to use for heatmap")
+    subparser.add_argument("--sq", action="store_true", help="Use square aspect ratio for cells", default=False)
+    subparser.add_argument("--cbar", action="store_true", help="Display colorbar", default=False)
+
+    # Title and size
+    subparser.add_argument("--title", type=str, default="", help="Plot title")
+    subparser.add_argument("--title_size", type=int, default=18, help="Font size of the title")
+    subparser.add_argument("--title_weight", type=str, default="bold", help="Font weight of the title (e.g., bold, normal)")
+    subparser.add_argument("--title_font", type=str, default="Arial", help="Font family for the title")
+    subparser.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size formatted as 'width,height'")
+
+    # X-axis
+    subparser.add_argument("--x_axis", type=str, default="", help="X-axis label")
+    subparser.add_argument("--x_axis_size", type=int, default=12, help="Font size for X-axis label")
+    subparser.add_argument("--x_axis_weight", type=str, default="bold", help="Font weight for X-axis label")
+    subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for X-axis label")
+    subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle for X-axis tick labels")
+    subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
+
+    # Y-axis
+    subparser.add_argument("--y_axis", type=str, default="", help="Y-axis label")
+    subparser.add_argument("--y_axis_size", type=int, default=12, help="Font size for Y-axis label")
+    subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Font weight for Y-axis label")
+    subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for Y-axis label")
+    subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle for Y-axis tick labels")
+    subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
+
+    # Final display
+    subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
+    subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space labels/legend values", default=False)
+
+def add_common_plot_stack_args(subparser):
+    '''
+    add_common_plot_stack_args(subparser): Add common arguments for stacked bar plot
+    '''
+    # Required arguments
+    subparser.add_argument("--df", type=str, help="Input dataframe file path", required=True)
+    subparser.add_argument("--x", type=str, help="X-axis column name")
+    subparser.add_argument("--y", type=str, help="Y-axis column name")
+    subparser.add_argument("--cols", type=str, help="Color column name for stacking")
+
+    # Optional parameters
+    subparser.add_argument("--dir", type=str, help="Output directory path", default='./out')
+    subparser.add_argument("--file", type=str, help="Output filename", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_stack.png')
     
-    # plot
-    parser_plot = subparsers.add_parser(
-        "plot",
-        help="Generate scatter, category, distribution, heatmap, stacked bar, and volcano plots",
-        description="Generate plot types: scat/line/line_scat, bar/box/violin/swarm/strip/point/count, hist/kde/hist_kde/rid, heat, stack, vol",
-        formatter_class=formatter,
-    )
-    sub_plot = parser_plot.add_subparsers(dest="typ")
+    subparser.add_argument("--cutoff_group", type=str, default=argparse.SUPPRESS, help="Column name to group by when applying cutoff")
+    subparser.add_argument("--cutoff_value", type=float, default=0, help="Y-axis values needs be greater than (e.g. 0)")
+    subparser.add_argument("--cutoff_remove", dest="cutoff_keep",action="store_false", help="Remove values below cutoff", default=True)
+    subparser.add_argument("--cols_ord", nargs="+", help="Order of values in the color column")
+    subparser.add_argument("--x_ord", nargs="+", help="Custom order of X-axis categories")
+    subparser.add_argument("--palette_or_cmap", type=str, default="Set2", help="Seaborn palette or Matplotlib colormap for stacked bars")
+    subparser.add_argument("--errcap", type=int, default=4, help="Width of error bar caps")
+    subparser.add_argument("--vertical", action="store_true", help="Stack bars vertically (default True)", default=False)
 
-    # scat/line/line_scat
-    for name in ("scat", "line", "line_scat"):
-        sp = sub_plot.add_parser(name, help=f"Create {name.replace('_',' + ')} plot", description=f"Create {name.replace('_',' + ')} plot", formatter_class=formatter)
-        add_common_plot_scat_args(sp)
-        sp.set_defaults(func=p.scat)
+    # Figure & layout
+    subparser.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size formatted as 'width,height'")
+    subparser.add_argument("--title", type=str, default="", help="Plot title")
+    subparser.add_argument("--title_size", type=int, default=18, help="Font size of the title")
+    subparser.add_argument("--title_weight", type=str, default="bold", help="Font weight of the title (e.g., bold, normal)")
+    subparser.add_argument("--title_font", type=str, default="Arial", help="Font family for the title")
 
-    # categorical family
-    for name in ("bar","box","violin","swarm","strip","point","count","bar_swarm","box_swarm","violin_swarm"):
-        sp = sub_plot.add_parser(name, help=f"Create {name.replace('_',' + ')} plot", description=f"Create {name.replace('_',' + ')} plot", formatter_class=formatter)
-        add_common_plot_cat_args(sp)
-        sp.set_defaults(func=p.cat)
+    # X-axis formatting
+    subparser.add_argument("--x_axis", type=str, default="", help="X-axis label")
+    subparser.add_argument("--x_axis_size", type=int, default=12, help="Font size for X-axis label")
+    subparser.add_argument("--x_axis_weight", type=str, default="bold", help="Font weight for X-axis label")
+    subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for X-axis label")
+    subparser.add_argument("--x_ticks_rot", type=int, help="Rotation angle for X-axis tick labels")
+    subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
 
-    # distributions
-    for name in ("hist","kde","hist_kde","rid"):
-        sp = sub_plot.add_parser(name, help=f"Create {name.replace('_',' + ')} plot", description=f"Create {name.replace('_',' + ')} plot", formatter_class=formatter)
-        add_common_plot_dist_args(sp)
-        sp.set_defaults(func=p.dist)
+    # Y-axis formatting
+    subparser.add_argument("--y_axis", type=str, default="", help="Y-axis label")
+    subparser.add_argument("--y_axis_size", type=int, default=12, help="Font size for Y-axis label")
+    subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Font weight for Y-axis label")
+    subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for Y-axis label")
+    subparser.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0,0), help="Y-axis range as tuple: start,end")
+    subparser.add_argument("--y_ticks_rot", type=int, help="Rotation angle for Y-axis tick labels")
+    subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
 
-    # heatmap
-    sp = sub_plot.add_parser("heat", help="Create heatmap plot", description="Create heatmap plot", formatter_class=formatter)
-    add_common_plot_heat_args(sp)
-    sp.set_defaults(func=p.heat)
+    # Legend options
+    subparser.add_argument("--legend_title", type=str, default="", help="Legend title text")
+    subparser.add_argument("--legend_title_size", type=int, default=12, help="Font size of the legend title")
+    subparser.add_argument("--legend_size", type=int, default=12, help="Font size for legend items")
+    subparser.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1, 1), help="Anchor position for the legend bounding box")
+    subparser.add_argument("--legend_loc", type=str, default="upper left", help="Legend location on the plot")
+    subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in the legend")
 
-    # stacked bar
-    sp = sub_plot.add_parser("stack", help="Create stacked bar plot", description="Create stacked bar plot", formatter_class=formatter)
-    add_common_plot_stack_args(sp)
-    sp.set_defaults(func=p.stack)
+    # Display and formatting
+    subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
+    subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space legend/label values", default=False)
 
-    # volcano
-    sp = sub_plot.add_parser("vol", help="Create volcano plot", description="Create volcano plot", formatter_class=formatter)
-    add_common_plot_vol_args(sp)
-    sp.set_defaults(func=p.vol)
+def add_common_plot_vol_args(subparser):
+    '''
+    add_common_plot_vol_args(subparser): Add common arguments for volcano plot
+    '''
+    # Required arguments
+    subparser.add_argument("--df", type=str, help="Input dataframe file path")
+    subparser.add_argument("--x", type=str, help="X-axis column name (e.g., fold change)")
+    subparser.add_argument("--y", type=str, help="Y-axis column name (e.g., p-value)")
 
-    # stat
-    parser_stat = subparsers.add_parser("stat", help="Statistics", description="Statistics", formatter_class=formatter)
-    sub_stat = parser_stat.add_subparsers()
+    # Optional data columns
+    subparser.add_argument("--stys", type=str, help="Style column name for custom markers")
+    subparser.add_argument("--size", type=str, help="Column name used to scale point sizes")
+    subparser.add_argument("--size_dims", type=parse_tuple_float, help="Size range for points formatted as min,max")
+    subparser.add_argument("--label", type=str, help="Column containing text labels for points")
 
-    sp = sub_stat.add_parser("describe", help="Compute descriptive statistics", description="Compute descriptive statistics", formatter_class=formatter)
-    sp.add_argument("--df", type=str, required=True, help="Input file path")
-    sp.add_argument("--dir", type=str, default="../out", help="Output directory")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_descriptive.csv', help="Output file name")
-    sp.add_argument("--cols", nargs="+", help="Numerical columns to describe")
-    sp.add_argument("--group", type=str, help="Column to group by")
-    sp.set_defaults(func=st.describe)
+    # Thresholds
+    subparser.add_argument("--FC_threshold", type=float, default=2, help="Fold change threshold for significance")
+    subparser.add_argument("--pval_threshold", type=float, default=0.05, help="P-value threshold for significance")
 
-    sp = sub_stat.add_parser("difference", help="Compute statistical difference between groups", description="Compute statistical difference between groups", formatter_class=formatter)
-    sp.add_argument("--df", type=str, required=True, help="Input file path")
-    sp.add_argument("--data_col", type=str, required=True, help="Column with numerical data")
-    sp.add_argument("--compare_col", type=str, required=True, help="Grouping column")
-    sp.add_argument("--compare", nargs="+", required=True, help="Groups to compare (e.g. A B)")
-    sp.add_argument("--dir", type=str, default="../out", help="Output directory")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_difference.csv', help="Output file name")
-    sp.add_argument("--same", action="store_true", help="Paired test")
-    sp.add_argument("--para", action="store_true", help="Use parametric test")
-    sp.add_argument("--alpha", type=float, default=0.05, help="Significance level")
-    sp.add_argument("--within_cols", nargs="+", help="Repeated-measures columns")
-    sp.add_argument("--method", type=str, default="holm", help="Multiple-comparison correction")
-    sp.set_defaults(func=st.difference)
+    # Output
+    subparser.add_argument("--dir", type=str, help="Output directory path", default='./out')
+    subparser.add_argument("--file", type=str, help="Output file name", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_vol.png')
 
-    sp = sub_stat.add_parser("correlation", help="Compute correlation matrix", description="Compute correlation matrix", formatter_class=formatter)
-    sp.add_argument("--df", type=str, required=True, help="Input file path")
-    sp.add_argument("--dir", type=str, default="../out", help="Output directory")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_correlation.csv', help="Output file name")
-    sp.add_argument("--var_cols", nargs="+", help="Two variable columns for tidy format")
-    sp.add_argument("--value_cols", nargs="+", help="Numerical columns to correlate")
-    sp.add_argument("--method", type=str, default="pearson", choices=["pearson","spearman","kendall"], help="Correlation method")
-    sp.add_argument("--numeric_only", action="store_true", help="Only use numeric columns")
-    sp.set_defaults(func=st.correlation)
+    # Aesthetics
+    subparser.add_argument("--color", type=str, default="lightgray", help="Color for non-significant points")
+    subparser.add_argument("--alpha", type=float, default=0.5, help="Transparency for non-significant points")
+    subparser.add_argument("--edgecol", type=str, default="black", help="Edge color of points")
+    subparser.add_argument("--vertical", action="store_true", help="Use vertical layout for plot", default=False)
 
-    sp = sub_stat.add_parser("compare", help="Compare conditions using FC, p-values, and log transforms", description="Compare conditions using FC, p-values, and log transforms", formatter_class=formatter)
-    sp.add_argument("--df", type=str, required=True, help="Input file path")
-    sp.add_argument("--sample", type=str, required=True, help="Sample column")
-    sp.add_argument("--cond", type=str, required=True, help="Condition column")
-    sp.add_argument("--cond_comp", type=str, required=True, help="Condition to compare against")
-    sp.add_argument("--var", type=str, required=True, help="Variable column")
-    sp.add_argument("--count", type=str, required=True, help="Count column")
-    sp.add_argument("--psuedocount", type=int, default=1, help="Pseudocount")
-    sp.add_argument("--dir", type=str, default="../out", help="Output directory")
-    sp.add_argument("--file", type=str, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_compare.csv', help="Output file name")
-    sp.set_defaults(func=st.compare)
+    # Figure setup
+    subparser.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size formatted as 'width,height'")
+    subparser.add_argument("--title", type=str, default="", help="Plot title")
+    subparser.add_argument("--title_size", type=int, default=18, help="Font size for plot title")
+    subparser.add_argument("--title_weight", type=str, default="bold", help="Font weight for plot title (e.g., bold, normal)")
+    subparser.add_argument("--title_font", type=str, default="Arial", help="Font family for plot title")
 
-    # io
-    parser_io = subparsers.add_parser("io", help="Input/Output", formatter_class=formatter)
+    # X-axis settings
+    subparser.add_argument("--x_axis", type=str, default="", help="Label for the X-axis")
+    subparser.add_argument("--x_axis_size", type=int, default=12, help="Font size for X-axis label")
+    subparser.add_argument("--x_axis_weight", type=str, default="bold", help="Font weight for X-axis label")
+    subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for X-axis label")
+    subparser.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0, 0), help="X-axis range formatted as min,max")
+    subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle for X-axis tick labels")
+    subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
+    subparser.add_argument("--x_ticks", nargs="+", help="Custom tick values for X-axis")
+
+    # Y-axis settings
+    subparser.add_argument("--y_axis", type=str, default="", help="Label for the Y-axis")
+    subparser.add_argument("--y_axis_size", type=int, default=12, help="Font size for Y-axis label")
+    subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Font weight for Y-axis label")
+    subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for Y-axis label")
+    subparser.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0, 0), help="Y-axis range formatted as min,max")
+    subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle for Y-axis tick labels")
+    subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
+    subparser.add_argument("--y_ticks", nargs="+", help="Custom tick values for Y-axis")
+
+    # Legend
+    subparser.add_argument("--legend_title", type=str, default="", help="Title for the legend")
+    subparser.add_argument("--legend_title_size", type=int, default=12, help="Font size for legend title")
+    subparser.add_argument("--legend_size", type=int, default=9, help="Font size for legend items")
+    subparser.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1, 1), help="Bounding box anchor for legend")
+    subparser.add_argument("--legend_loc", type=str, default="upper left", help="Legend location on the plot")
+    subparser.add_argument("--legend_items", type=parse_tuple_int, default=(0, 0), help="Tuple defining legend layout")
+    subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in the legend")
+
+    # Boolean switches
+    subparser.add_argument("--display_size", action="store_true", help="Show point sizes as annotations", default=False)
+    subparser.add_argument("--display_labels", action="store_true", help="Display text labels for selected points", default=False)
+    subparser.add_argument("--return_df", action="store_true", help="Return annotated DataFrame after plotting", default=False)
+    subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
+    subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space labels/legend items", default=False)
+
+def add_subparser(subparsers, formatter_class=None):
+    """
+    add_subparser(): Attach all gen-related subparsers to the top-level CLI.
+
+    Parameters:
+    subparsers (argparse._SubParsersAction): The subparsers object to attach the gen subparsers to.
+    formatter_class (type, optional): The formatter class to use for the subparsers.
+    """
+    '''
+    edms.gen.plot:
+    - scat(): creates scatter plot related graphs
+    - cat(): creates category dependent graphs
+    - dist(): creates distribution graphs
+    - heat(): creates heatmap graphs
+    - stack(): creates stacked bar plot
+    - vol(): creates volcano plot
+    '''
+    parser_plot = subparsers.add_parser("plot", help="Generate scatter, category, distribution, heatmap, stacked bar, and volcano plots", description="Generate scatter, category, distribution, heatmap, stacked bar, and volcano plots", formatter_class=formatter_class)
+    subparsers_plot = parser_plot.add_subparsers(dest="typ")
+
+    # scat(): Creates scatter plot related graphs (scat, line, line_scat)
+    parser_plot_type_scat = subparsers_plot.add_parser("scat", help="Create scatter plot", description="Create scatter plot", formatter_class=formatter_class)
+    parser_plot_type_line = subparsers_plot.add_parser("line", help="Create line plot", description="Create line plot", formatter_class=formatter_class)
+    parser_plot_type_line_scat = subparsers_plot.add_parser("line_scat", help="Create scatter + line plot", description="Create scatter + line plot", formatter_class=formatter_class)
+
+    for parser_plot_scat in [parser_plot_type_scat, parser_plot_type_line, parser_plot_type_line_scat]:
+        add_common_plot_scat_args(parser_plot_scat)
+        parser_plot_scat.set_defaults(func=p.scat)
+
+    # cat(): Creates category dependent graphs (bar, box, violin, swarm, strip, point, count, bar_swarm, box_swarm, violin_swarm)
+    parser_plot_type_bar = subparsers_plot.add_parser("bar", help="Create bar plot", description="Create bar plot", formatter_class=formatter_class)
+    parser_plot_type_box = subparsers_plot.add_parser("box", help="Create box plot", description="Create box plot", formatter_class=formatter_class)
+    parser_plot_type_violin = subparsers_plot.add_parser("violin", help="Create violin plot", description="Create violin plot", formatter_class=formatter_class)
+    parser_plot_type_swarm = subparsers_plot.add_parser("swarm", help="Create swarm plot", description="Create swarm plot", formatter_class=formatter_class)
+    parser_plot_type_strip = subparsers_plot.add_parser("strip", help="Create strip plot", description="Create strip plot", formatter_class=formatter_class)
+    parser_plot_type_point = subparsers_plot.add_parser("point", help="Create point plot", description="Create point plot", formatter_class=formatter_class)
+    parser_plot_type_count = subparsers_plot.add_parser("count", help="Create count plot", description="Create count plot", formatter_class=formatter_class)
+    parser_plot_type_bar_swarm = subparsers_plot.add_parser("bar_swarm", help="Create bar + swarm plot", description="Create bar + swarm plot", formatter_class=formatter_class)
+    parser_plot_type_box_swarm = subparsers_plot.add_parser("box_swarm", help="Create box + swarm plot", description="Create box + swarm plot", formatter_class=formatter_class)
+    parser_plot_type_violin_swarm = subparsers_plot.add_parser("violin_swarm", help="Create violin + swarm plot", description="Create violin + swarm plot", formatter_class=formatter_class)
+
+    for parser_plot_cat in [parser_plot_type_bar, parser_plot_type_box, parser_plot_type_violin, parser_plot_type_swarm, parser_plot_type_strip, parser_plot_type_point, parser_plot_type_count, parser_plot_type_bar_swarm, parser_plot_type_box_swarm, parser_plot_type_violin_swarm]:
+        add_common_plot_cat_args(parser_plot_cat)
+        parser_plot_cat.set_defaults(func=p.cat)
+
+    # dist(): Creates distribution graphs (hist, kde, hist_kde, rid)
+    parser_plot_type_hist = subparsers_plot.add_parser("hist", help="Create histogram plot", description="Create histogram plot", formatter_class=formatter_class)
+    parser_plot_type_kde = subparsers_plot.add_parser("kde", help="Create density plot", description="Create density plot", formatter_class=formatter_class)
+    parser_plot_type_hist_kde = subparsers_plot.add_parser("hist_kde", help="Create histogram + density plot", description="Create histogram + density plot", formatter_class=formatter_class)
+    parser_plot_type_rid = subparsers_plot.add_parser("rid", help="Create ridge plot", description="Create ridge plot", formatter_class=formatter_class)
+
+    for parser_plot_dist in [parser_plot_type_hist, parser_plot_type_kde, parser_plot_type_hist_kde, parser_plot_type_rid]:
+        add_common_plot_dist_args(parser_plot_dist)
+        parser_plot_cat.set_defaults(func=p.dist)
+
+    # heat(): Creates heatmap graphs
+    parser_plot_type_heat = subparsers_plot.add_parser("heat", help="Create heatmap plot", description="Create heatmap plot", formatter_class=formatter_class)
+    add_common_plot_heat_args(parser_plot_type_heat)
+    parser_plot_type_heat.set_defaults(func=p.heat)
+    
+    # stack(): Creates stacked bar plot
+    parser_plot_type_stack = subparsers_plot.add_parser("stack", help="Create stacked bar plot", description="Create stacked bar plot", formatter_class=formatter_class)
+    add_common_plot_stack_args(parser_plot_type_stack)
+    parser_plot_type_stack.set_defaults(func=p.stack)
+
+    # vol(): Creates volcano plot
+    parser_plot_type_vol = subparsers_plot.add_parser("vol", help="Create volcano plot", description="Create volcano plot", formatter_class=formatter_class)
+    add_common_plot_vol_args(parser_plot_type_vol)
+    parser_plot_type_vol.set_defaults(func=p.vol)
+
+    '''
+    edms.gen.stat:
+    - describe(): returns descriptive statistics for numerical columns in a DataFrame
+    - difference(): computes the appropriate statistical test(s) and returns the p-value(s)
+    - correlation(): returns a correlation matrix
+    - compare(): computes FC, pval, and log transformations relative to a specified condition
+    '''
+    parser_stat = subparsers.add_parser("stat", help="Statistics", description="Statistics", formatter_class=formatter_class)
+    subparsers_stat = parser_stat.add_subparsers()
+    
+    # describe(): returns descriptive statistics for numerical columns in a DataFrame
+    parser_stat_describe = subparsers_stat.add_parser("describe", help="Compute descriptive statistics", description="Compute descriptive statistics", formatter_class=formatter_class)
+
+    parser_stat_describe.add_argument("--df", type=str, help="Input file path", required=True)
+
+    parser_stat_describe.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_describe.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_descriptive.csv')
+    
+    parser_stat_describe.add_argument("--cols", nargs="+", help="List of numerical columns to describe")
+    parser_stat_describe.add_argument("--group", type=str, help="Column name to group by")
+    
+    parser_stat_describe.set_defaults(func=st.describe)
+
+    # difference(): computes the appropriate statistical test(s) and returns the p-value(s)
+    parser_stat_difference = subparsers_stat.add_parser("difference", help="Compute statistical difference between groups", description="Compute statistical difference between groups", formatter_class=formatter_class)
+
+    parser_stat_difference.add_argument("--df", type=str, help="Input file path",required=True)
+    parser_stat_difference.add_argument("--data_col", type=str, help="Name of column containing numerical data",required=True)
+    parser_stat_difference.add_argument("--compare_col", type=str, help="Name of column used for grouping/comparisons",required=True)
+    parser_stat_difference.add_argument("--compare", nargs="+", help="List of groups to compare (e.g. A B)",required=True)
+
+    parser_stat_difference.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_difference.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_difference.csv')
+
+    parser_stat_difference.add_argument("--same", action="store_true", help="Same subjects (paired test)")
+    parser_stat_difference.add_argument("--para", action="store_true", help="Use parametric test (Default: True)")
+    parser_stat_difference.add_argument("--alpha", type=float, default=0.05, help="Significance level (Default: 0.05)")
+    parser_stat_difference.add_argument("--within_cols", nargs="+", help="Columns for repeated measures (used if same=True and para=True)")
+    parser_stat_difference.add_argument("--method", type=str, default="holm", help="Correction method for multiple comparisons")
+
+    parser_stat_difference.set_defaults(func=st.difference)
+
+    # correlation(): returns a correlation matrix
+    parser_stat_correlation = subparsers_stat.add_parser("correlation", help="Compute correlation matrix", description="Compute correlation matrix", formatter_class=formatter_class)
+
+    parser_stat_correlation.add_argument("--df", type=str, help="Input file path",required=True)
+
+    parser_stat_correlation.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_correlation.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_correlation.csv')
+
+    parser_stat_correlation.add_argument("--var_cols", nargs="+", help="List of 2 variable columns for tidy format")
+    parser_stat_correlation.add_argument("--value_cols", nargs="+", help="List of numerical columns to correlate")
+    parser_stat_correlation.add_argument("--method", type=str, default="pearson", choices=["pearson", "spearman", "kendall"],
+                                         help="Correlation method to use (Default: pearson)")
+    parser_stat_correlation.add_argument("--numeric_only", action="store_true", help="Only use numeric columns (Default: True)")
+
+    parser_stat_correlation.set_defaults(func=st.correlation)
+
+    # compare(): computes FC, pval, and log transformations relative to a specified condition
+    parser_stat_compare = subparsers_stat.add_parser("compare", help="Compare conditions using FC, p-values, and log transforms", description="Compare conditions using FC, p-values, and log transforms", formatter_class=formatter_class)
+
+    parser_stat_compare.add_argument("--df", type=str, help="Input file path",required=True)
+    parser_stat_compare.add_argument("--sample", type=str, help="Sample column name",required=True)
+    parser_stat_compare.add_argument("--cond", type=str, help="Condition column name",required=True)
+    parser_stat_compare.add_argument("--cond_comp", type=str, help="Condition to compare against",required=True)
+    parser_stat_compare.add_argument("--var", type=str, help="Variable column name",required=True)
+    parser_stat_compare.add_argument("--count", type=str, help="Count column name",required=True)
+
+    parser_stat_compare.add_argument("--psuedocount", type=int, default=1, help="Pseudocount to avoid log(0) or divide-by-zero errors")
+    parser_stat_compare.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_compare.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_compare.csv')
+
+    parser_stat_compare.set_defaults(func=st.compare)
+
+    '''
+    edms.gen.io:
+    - in_subs(): moves all files with a given suffix into subfolders named after the files (excluding the suffix).
+    - out_subs(): recursively moves all files from subdirectories into the parent directory and delete the emptied subdirectories.
+    - create_sh(): creates a shell script with SLURM job submission parameters for Harvard FASRC cluster.
+    - split_R1_R2(): split paired reads into new R1 and R2 subdirectories at the parent directory
+    - excel_csvs(): exports excel file to .csv files in specified directory  
+    '''
+    parser_io = subparsers.add_parser("io", help="Input/Output", formatter_class=formatter_class)
     subparsers_io = parser_io.add_subparsers()
+    
+    # Create subparsers for commands
+    parser_io_in_subs = subparsers_io.add_parser("in_subs", help="*No FASRC* Moves all files with a given suffix into subfolders named after the files (excluding the suffix)", description="*No FASRC* Moves all files with a given suffix into subfolders named after the files (excluding the suffix)", formatter_class=formatter_class)
+    parser_io_out_subs = subparsers_io.add_parser("out_subs", help="*No FASRC* Delete subdirectories and move their files to the parent directory", description="*No FASRC* Delete subdirectories and move their files to the parent directory", formatter_class=formatter_class)
+    parser_io_excel_csvs = subparsers_io.add_parser("excel_csvs", help='Exports excel file to .csv files in specified directory.', description='Exports excel file to .csv files in specified directory.', formatter_class=formatter_class)
 
-    parser_io_in_subs = subparsers_io.add_parser(
-        "in_subs",
-        help="*No FASRC* Moves all files with a given suffix into subfolders named after the files (excluding the suffix)",
-        description="*No FASRC* Moves all files with a given suffix into subfolders named after the files (excluding the suffix)",
-        formatter_class=formatter,
-    )
-    parser_io_out_subs = subparsers_io.add_parser(
-        "out_subs",
-        help="*No FASRC* Delete subdirectories and move their files to the parent directory",
-        description="*No FASRC* Delete subdirectories and move their files to the parent directory",
-        formatter_class=formatter,
-    )
+    # Add common arguments
+    for parser_io_common in [parser_io_in_subs,parser_io_out_subs]:
+        parser_io_common.add_argument("--dir", help="Path to parent directory", type=str, default='.')
+    
+    # in_subs() arguments
+    parser_io_in_subs.add_argument("--suf", help="File suffix (e.g., '.txt', '.csv') to filter files.", type=str, required=True) 
 
-    for parser_io_common in [parser_io_in_subs, parser_io_out_subs]:
-        parser_io_common.add_argument("--dir", help="Path to parent directory", type=str, required=True)
+    # excel_csvs(): exports excel file to .csv files in specified directory 
+    parser_io_excel_csvs.add_argument('--pt', type=str, help='Excel file path', required=True)
+    parser_io_excel_csvs.add_argument('--dir', type=str, help='Output directory path (Default: same directory as excel file name).',default='')
 
-    parser_io_in_subs.add_argument("--suf", help="File suffix (e.g., '.txt', '.csv') to filter files.", type=str, required=True)
-
+    # Call command functions
     parser_io_in_subs.set_defaults(func=io.in_subs)
     parser_io_out_subs.set_defaults(func=io.out_subs)
+    parser_io_excel_csvs.set_defaults(func=io.excel_csvs)
+
+    '''
+    edms.gen.com:
+    - access(): make all files and subdirectories accessible on Harvard FASRC
+    - create_export_var(): create a persistent environment variable by adding it to the user's shell config.
+    - view_export_vars(): View the current export variables in the user's shell config.
+    '''
+    parser_com = subparsers.add_parser("com", help="Command Line Interaction", description="Command Line Interaction", formatter_class=formatter_class)
+    subparsers_com = parser_com.add_subparsers()
+    
+    # Create subparsers for commands
+    parser_com_access = subparsers_com.add_parser("access", help="Make all files and subdirectories accessible on Harvard FASRC", description="Make all files and subdirectories accessible on Harvard FASRC", formatter_class=formatter_class)
+    parser_com_create_export_var = subparsers_com.add_parser("create_export_var", help="Create a persistent export variable by adding it to the user's shell config.", description="Create a persistent export variable by adding it to the user's shell config.", formatter_class=formatter_class)
+    parser_com_view_export_vars = subparsers_com.add_parser("view_export_vars", help="View the current export variables in the user's shell config.", description="View the current export variables in the user's shell config.", formatter_class=formatter_class)
+
+    # access arguments
+    parser_com_access.add_argument("--pt", help="Path to parent directory", type=str, default='.')
+    
+    # create_export_var arguments
+    parser_com_create_export_var.add_argument("--name", help="Name of the environment variable (e.g., MYPROJ)", required=True)
+    parser_com_create_export_var.add_argument("--pt", help="Path the variable should point to (e.g., ~/projects/myproj)", required=True)
+    parser_com_create_export_var.add_argument("--shell", choices=["bash", "zsh"], default=argparse.SUPPRESS, help="Shell type)")
+    
+    # view_export_var arguments
+    parser_com_view_export_vars.add_argument("--shell", choices=["bash", "zsh"], default=argparse.SUPPRESS, help="Shell type")
+
+    # set default functions
+    parser_com_access.set_defaults(func=com.access)
+    parser_com_create_export_var.set_defaults(func=com.create_export_var)
+    parser_com_view_export_vars.set_defaults(func=com.view_export_vars)

@@ -1,0 +1,16 @@
+=== Example 3: Fetch PubMed abstracts ===
+
+PMID: 41211417
+1. Front Oncol. 2025 Oct 24;15:1670818. doi: 10.3389/fonc.2025.1670818.
+eCollection  2025.
+----------------------------------------
+
+PMID: 41209924
+Case Report: Dual checkpoint inhibition with bevacizumab yields dramatic 
+response in synchronous double primary HCC and ICC with lung metastasis.
+----------------------------------------
+
+PMID: 41209655
+He YC(#)(1)(2), Dai XY(#)(1)(2), Lv YH(#)(1)(2), Yang XJ(2)(3), Xie QY(1)(2), 
+Xie SN(1)(2), Cai YS(1)(2), Gao FW(1)(2), Lan T(1)(2).
+----------------------------------------

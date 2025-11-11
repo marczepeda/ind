@@ -1,0 +1,26 @@
+=== Example 1: PubMed esearch ===
+{
+  "Count": "213615",
+  "RetMax": "5",
+  "RetStart": "0",
+  "QueryKey": "1",
+  "WebEnv": "MCID_69129a858dea6fddaf0228cb",
+  "IdList": [
+    "41213213",
+    "41213188",
+    "41213168",
+    "41213088",
+    "41213065"
+  ],
+  "TranslationSet": [
+    {
+      "From": "cancer",
+      "To": "\"cancer's\"[All Fields] OR \"cancerated\"[All Fields] OR \"canceration\"[All Fields] OR \"cancerization\"[All Fields] OR \"cancerized\"[All Fields] OR \"cancerous\"[All Fields] OR \"neoplasms\"[MeSH Terms] OR \"neoplasms\"[All Fields] OR \"cancer\"[All Fields] OR \"cancers\"[All Fields]"
+    },
+    {
+      "From": "immunotherapy",
+      "To": "\"immunotherapy\"[MeSH Terms] OR \"immunotherapy\"[All Fields] OR \"immunotherapies\"[All Fields] OR \"immunotherapy's\"[All Fields]"
+    }
+  ],
+  "QueryTranslation": "(\"cancer s\"[All Fields] OR \"cancerated\"[All Fields] OR \"canceration\"[All Fields] OR \"cancerization\"[All Fields] OR \"cancerized\"[All Fields] OR \"cancerous\"[All Fields] OR \"neoplasms\"[MeSH Terms] OR \"neoplasms\"[All Fields] OR \"cancer\"[All Fields] OR \"cancers\"[All Fields]) AND (\"immunotherapy\"[MeSH Terms] OR \"immunotherapy\"[All Fields] OR \"immunotherapies\"[All Fields] OR \"immunotherapy s\"[All Fields])"
+}

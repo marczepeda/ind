@@ -36,7 +36,10 @@ from ind.uspto_odp import cli as uspto_cli
 from ind.openfda import cli as openfda_cli
 from ind.clinical_trials import cli as clinical_trials_cli
 from ind.naaccr import cli as naaccr_cli
+from ind.seer import cli as seer_cli
+from ind.ncbi import cli as ncbi_cli
 from ind.gen import cli as gen_cli
+from ind.aggregator import cli as aggregator_cli
 
 # Show post-install notice only once per version
 try:
@@ -142,25 +145,30 @@ def main(argv=None):
     ind.config:
     - get_info: Retrieve information based on id
     - set_info: Set information based on id
+    - del_info: Delete information based on id
     '''
     parser_config = subparsers.add_parser("config", help="Configuration", description="Configuration", formatter_class=MyFormatter)
     subparsers_config = parser_config.add_subparsers()
 
-    # get_info(): Retrieve information based on id
-    # set_info(): Set information based on id
+    # Add subparsers for config module
     parser_config_get_info = subparsers_config.add_parser("get", help="Retrieve information based on id", description="Retrieve information based on id", formatter_class=MyFormatter)
     parser_config_set_info = subparsers_config.add_parser("set", help="Set information based on id", description="Set information based on id", formatter_class=MyFormatter)
-    
+    parser_config_del_info = subparsers_config.add_parser("del", help="Delete information based on id", description="Delete information based on id", formatter_class=MyFormatter)
+
     # get_info() arguments
-    parser_config_get_info.add_argument("--id", type=str, help="Identifier from/for configuration file")
+    parser_config_get_info.add_argument("--id", type=str, help="Identifier from/for configuration file (e.g., SEER_API_KEY or USPTO_API_KEY)")
+    
+    # Commond set_info() and del_info() arguments
+    for parser_common in [parser_config_set_info, parser_config_del_info]:
+        parser_common.add_argument("--id", type=str, help="Identifier from/for configuration file (e.g., SEER_API_KEY or USPTO_API_KEY)", required=True)
     
     # set_info() arguments
-    parser_config_set_info.add_argument("--id", type=str, help="Identifier from/for configuration file", required=True)
-    parser_config_set_info.add_argument("--info", type=ast.literal_eval, help="Information for configuration file (str or dict)", required=True)
+    parser_config_set_info.add_argument("--info", type=str, help="Information for configuration file (str, dict, list, set, or tuple; e.g., your_api_key)", required=True)
     
     # default functions
     parser_config_get_info.set_defaults(func=config.get_info)
     parser_config_set_info.set_defaults(func=config.set_info)
+    parser_config_del_info.set_defaults(func=config.del_info)
 
     # gen module subparsers: plot/stat/io
     gen_cli.add_subparser(subparsers, MyFormatter)
@@ -179,6 +187,15 @@ def main(argv=None):
 
     # naaccr module subparser
     naaccr_cli.add_subparser(subparsers, MyFormatter)
+
+    # seer module subparser
+    seer_cli.add_subparser(subparsers, MyFormatter)
+
+    # ncbi module subparser
+    ncbi_cli.add_subparser(subparsers, MyFormatter)
+
+    # Register aggregator “intel” command
+    aggregator_cli.add_subparser(subparsers, MyFormatter)
 
     # default: show help if no subcommand
     parser.set_defaults(func=lambda _: parser.print_help())

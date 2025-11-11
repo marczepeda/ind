@@ -1,0 +1,62 @@
+Glossary Versions
+-----------------
+[
+  {
+    "version": "latest",
+    "first_published": "2014-10-03T18:44:46.267Z",
+    "last_modified": "2025-09-05T13:51:19.217Z",
+    "count": 6382
+  }
+]
+
+Disease Versions
+----------------
+[
+  {
+    "version": "latest",
+    "first_published": "2013-07-29T20:23:46.868Z",
+    "last_modified": "2025-08-01T12:39:08.768Z",
+    "count": 356
+  }
+]
+
+Rx Versions
+-----------
+[
+  {
+    "version": "latest",
+    "first_published": "2014-07-14T21:26:09.691Z",
+    "last_modified": "2025-09-11T22:02:29.739Z",
+    "count": 2266
+  }
+]
+
+Staging Algorithms
+------------------
+[
+  {
+    "algorithm": "tnm",
+    "name": "TNM Staging",
+    "description": "The TNM algorithm"
+  },
+  {
+    "algorithm": "cs",
+    "name": "Collaborative Staging",
+    "description": "The CS algorithm"
+  },
+  {
+    "algorithm": "eod_public",
+    "name": "EOD 2018 and Summary Stage 2018",
+    "description": "The EOD 2018 and Summary Stage 2018 algorithms"
+  },
+  {
+    "algorithm": "toronto",
+    "name": "Toronto Staging",
+    "description": "The Toronto pediatric staging algorithms"
+  },
+  {
+    "algorithm": "pediatric",
+    "name": "Pediatric Staging",
+    "description": "The Pediatric staging algorithm"
+  }
+]

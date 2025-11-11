@@ -1,0 +1,80 @@
+HCPCS Search
+------------
+[
+  {
+    "hcpcs_code": "C9214",
+    "generic_name": "Bevacizumab",
+    "brand_names": [
+      "Avastin"
+    ],
+    "strength": "10 mg",
+    "fda_approval_year": "2004",
+    "cms_approval_date": "2004-02-26",
+    "cms_discontinuation_date": "2004-12-31",
+    "categories": [
+      "IMMUNOTHERAPY"
+    ],
+    "major_drug_class": "Monoclonal Antibody",
+    "minor_drug_class": "VEGFR",
+    "oral": false,
+    "date_added": "2018-06-11T18:49:52.760Z",
+    "date_modified": "2018-10-22T08:30:28.509Z",
+    "score": 0.2431708425283432
+  },
+  {
+    "hcpcs_code": "C9257",
+    "generic_name": "Bevacizumab",
+    "brand_names": [
+      "Avastin"
+    ],
+    "strength": "0.25 mg",
+    "fda_approval_year": "2004",
+    "cms_approval_date": "2010-01-01",
+    "categories": [
+      "IMMUNOTHERAPY"
+    ],
+    "major_drug_class": "Monoclonal Antibody",
+    "minor_drug_class": "VEGFR",
+    "oral": false,
+    "date_added": "2018-06-11T18:49:52.760Z",
+    "date_modified": "2018-10-22T08:30:28.509Z",
+    "score": 0.2431708425283432
+  },
+  {
+    "hcpcs_code": "S0116",
+    "generic_name": "Bevacizumab",
+    "brand_names": [
+      "Avastin"
+    ],
+    "strength": "100 mg",
+    "fda_approval_year": "2004",
+    "cms_approval_date": "2004-07-01",
+    "cms_discontinuation_date": "2006-06-30",
+    "categories": [
+      "IMMUNOTHERAPY"
+    ],
+    "major_drug_class": "Monoclonal Antibody",
+    "minor_drug_class": "VEGFR",
+    "oral": false,
+    "date_added": "2018-06-11T18:49:52.760Z",
+    "date_modified": "2018-10-22T08:30:28.509Z",
+    "score": 0.2431708425283432
+  },
+  {
+    "hcpcs_code": "Q2024",
+    "generic_name": "Bevacizumab",
+    "brand_names": [
+      "Avastin"
+    ],
+    "strength": "0.25 mg",
+    "fda_approval_year": "2004",
+    "cms_approval_date": "2009-10-01",
+    "cms_discontinuation_date": "2009-12-31",
+    "categories": [
+      "IMMUNOTHERAPY"
+    ],
+    "major_drug_class": "Monoclonal Antibody",
+    "minor_drug_class": "VEGFR",
+    "oral": false,
+    "date_added": "2018-06-11T18:49:52.
+... [truncated] ...

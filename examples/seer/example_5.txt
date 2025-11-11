@@ -1,0 +1,11 @@
+Rx Search vlatest
+-----------------
+{
+  "terms": [
+    "bevacizumab"
+  ],
+  "total": 0,
+  "count": 25,
+  "offset": 0,
+  "order": "score"
+}

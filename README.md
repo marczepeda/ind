@@ -27,6 +27,19 @@ ind -h # or ind <TAB>
     ind autocomplete # Optional: set up ind autocomplete; follow CLI instructions
     conda deactivate
     ```
+5. Retrieve and set API keys:
+    - Refer to https://api.seer.cancer.gov/usage to retrieve your SEER_API_KEY.
+        ```shell
+        ind config set --id SEER_API_KEY --info your_api_key
+        ```
+    - Refer to https://data.uspto.gov/apis/getting-started to retrieve your USPTO_API_KEY.
+        ```shell
+        ind config set --id USPTO_API_KEY --info your_api_key
+        ```
+    - Refer to https://www.ncbi.nlm.nih.gov/datasets/docs/v2/api/ to set your account and retrieve your NCBI_API_KEY.
+        ```shell
+        ind config set --id NCBI_EMAIL --info your_email
+        ind config set --id NCBI_API_KEY --info your_api_key
 5. (Optional) Download openBB: https://docs.openbb.co/platform/installation
     - Register for an account and sign in.
     - Mac/Windows: https://my.openbb.co/app/platform/downloads

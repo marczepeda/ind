@@ -1,0 +1,95 @@
+Glossary vlatest
+----------------
+{
+  "terms": [
+    "lymph"
+  ],
+  "total": 476,
+  "count": 25,
+  "offset": 0,
+  "max_score": 8800.0,
+  "order": "score",
+  "results": [
+    {
+      "id": "55205afce4b0bc5c16bf9996",
+      "name": "Lymphatic trunk",
+      "score": 8800.0
+    },
+    {
+      "id": "546a0b61e4b0d965832924e4",
+      "name": "Lymph node",
+      "score": 8080.0
+    },
+    {
+      "id": "55a99b73e4b05cd0cddc6dc1",
+      "name": "Cervical lymph nodes",
+      "score": 6480.0
+    },
+    {
+      "id": "546a0d32e4b0d96583292691",
+      "name": "Follicular lymphoma",
+      "score": 6050.0
+    },
+    {
+      "id": "546a0b99e4b0d9658329250a",
+      "name": "Lymphatic system",
+      "score": 5680.0
+    },
+    {
+      "id": "54fb84dee4b0c48f31d32534",
+      "name": "Sentinel lymph node",
+      "score": 4960.0
+    },
+    {
+      "id": "546a0b2ae4b0d965832924b2",
+      "name": "Lymph",
+      "score": 4940.0
+    },
+    {
+      "id": "546a10f0e4b0d965832929ea",
+      "name": "Non-Hodgkin lymphoma",
+      "score": 4850.0
+    },
+    {
+      "id": "552161f2e4b0bc5c16bfce69",
+      "name": "Lymphatic drainage",
+      "score": 4800.0
+    },
+    {
+      "id": "55195a1fe4b0bc5c16bd1558",
+      "name": "Lymph node regions",
+      "score": 4800.0
+    },
+    {
+      "id": "546a0bcce4b0d96583292545",
+      "name": "Lymph vessel",
+      "score": 4640.0
+    },
+    {
+      "id": "5458d871e4b03ba32242426d",
+      "name": "Lymph node biopsy",
+      "score": 4400.0
+    },
+    {
+      "id": "550ac46ce4b0c48f31d93596",
+      "name": "Dukes classification",
+      "score": 4400.0
+    },
+    {
+      "id": "554cd0bfe4b0426fced76bc8",
+      "name": "Vascularized lymph node transfer surgery",
+      "score": 4040.0
+    },
+    {
+      "id": "55076475e4b0c48f31d7b046",
+      "name": "Lymph nodes of the Abdomen and Pelvis",
+      "score": 4000.0
+    },
+    {
+      "id": "55a99502e4b05cd0cddc6c40",
+      "name": "Lymphovenus transplant and vascularized lymph node transfer",
+      "score": 4000.0
+    },
+    {
+      "id": "5522a441e4b0
+... [truncated] ...
