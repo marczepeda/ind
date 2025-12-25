@@ -26,7 +26,7 @@ import datetime
 import sys # might use later
 from rich import print as rprint # might use later
 
-from . import com, io, plot as p, stat as st
+from . import com, io, plot as p, stat as st, html as ht
 from ..utils import parse_tuple_int, parse_tuple_float
 
 # Plot subparser methods
@@ -715,7 +715,6 @@ def add_subparser(subparsers, formatter_class=None):
     parser_com_view_export_vars.add_argument("--shell", choices=["bash", "zsh"], default=argparse.SUPPRESS, help="Shell type")
 
     # set default functions
-    parser_com_access.set_defaults(func=com.access)
     parser_com_create_export_var.set_defaults(func=com.create_export_var)
     parser_com_view_export_vars.set_defaults(func=com.view_export_vars)
 
