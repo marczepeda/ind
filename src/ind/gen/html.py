@@ -10,6 +10,7 @@ import importlib.resources as pkg_resources
 import ind.resources.icon as icon_pkg
 from ind.gen.tidy import natural_key
 from ind.gen.plot import re_un_cap
+from ind.utils import mkdir
 
 _TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 
@@ -32,6 +33,7 @@ def make_html_index(
     recursive: bool = False,
     exclude: Iterable[str] = ("index.html", "index.pdf"),
     sort: str = "title",  # "title" | "name" | "mtime"
+    label: str = "title",  # "title" | "stem" | "name"
     preview: bool = True,
     grid_cols: int = 3,
     image_types: list[str] | None = None,
@@ -52,6 +54,7 @@ def make_html_index(
     recursive (bool, optional): Whether to search subdirectories.
     exclude (Iterable[str], optional): Filenames to exclude (case insensitive).
     sort (str): Sort by "title", "name", or "mtime" (modification time).
+    label (str): Card label source: "title" (HTML <title>), "stem" (filename without suffix), or "name" (full filename).
     preview (bool, optional): Whether to include an iframe preview panel.
     grid_cols (int, optional): Number of grid columns (default 3).
     image_types (list[str] | None, optional): List of image file extensions to include (e.g. ['.png','.jpg','.gif']). If None, only .html files are included.
@@ -60,9 +63,11 @@ def make_html_index(
     """
     dir = Path(dir).expanduser().resolve()
     out_path = (dir / file) if not Path(file).is_absolute() else Path(file)
+    sub_dir = '.'.join(str(out_path).split('.')[:-1])
+    mkdir(sub_dir)
 
     with pkg_resources.path(icon_pkg, f"{icon}.svg") as svg_path:
-        shutil.copy(svg_path, Path(dir) / f"{icon}.svg")
+        shutil.copy(svg_path, Path(sub_dir) / f"{icon}.svg")
 
     exts = {".html"}
     if image_types:
@@ -76,10 +81,20 @@ def make_html_index(
 
     items = []
     for p in files:
+        # Base values
+        stem = p.stem
+        name = p.name
         if p.suffix.lower() == ".html":
-            title = _extract_html_title(p) or p.stem
+            html_title = _extract_html_title(p) or stem
         else:  # image file
-            title = p.stem
+            html_title = stem
+
+        if label == "name":
+            title = name
+        elif label == "stem":
+            title = stem
+        else:  # "title" (default)
+            title = html_title
 
         # grouping key: subdirectory if recursive; unused otherwise
         if recursive:
@@ -198,7 +213,7 @@ def make_html_index(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>IND {re_un_cap('.'.join(file.split('.')[:-1]))}</title>
-  <link rel="icon" type="image/svg+xml" href="{dir}/{icon}.svg">
+  <link rel="icon" type="image/svg+xml" href="{sub_dir}/{icon}.svg">
   <style>
     :root {{
       --bg: #0b0c10;

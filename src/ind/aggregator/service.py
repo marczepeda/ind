@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import requests
 from ind.openfda.client import OpenFDAClient
 
@@ -17,6 +17,33 @@ def _openfda_page(client: OpenFDAClient, params: Dict[str, Any]) -> Dict[str, An
         if e.response is not None and e.response.status_code == 404:
             return {"results": [], "meta": {"results": {"total": 0}}}
         raise
+
+
+# Generic OpenFDA paging helper for any endpoint
+def _openfda_paged(client: OpenFDAClient, path: str, params: Dict[str, Any], *, limit: int = 1000) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    page_size = int(params.get("limit") or 100)
+    params = dict(params)
+    params["limit"] = page_size
+    params.setdefault("skip", 0)
+
+    data = client.request_json("GET", path, params=params)
+    results = data.get("results", []) or []
+    out.extend(results)
+    total = data.get("meta", {}).get("results", {}).get("total", len(results))
+    total = min(int(total or 0), limit)
+
+    fetched = len(results)
+    while fetched < total:
+        params["skip"] = fetched
+        data = client.request_json("GET", path, params=params)
+        results = data.get("results", []) or []
+        if not results:
+            break
+        out.extend(results)
+        fetched += len(results)
+
+    return out[:total]
 
 def _search_sponsor(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
     """
@@ -45,6 +72,35 @@ def _search_sponsor(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
         fetched += len(results)
 
     return out[:total]
+
+
+# Retrieve 510k devices for a company
+def _search_device_510k(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+    # Common fields for company name in 510k records
+    query = f'applicant:"{q_company}" OR manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/device/510k.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+
+# Retrieve PMA devices for a company
+def _search_device_pma(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+    query = f'applicant:"{q_company}" OR manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/device/pma.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
 
 def _flatten_approved_drugs(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -97,58 +153,52 @@ def _flatten_approved_drugs(records: List[Dict[str, Any]]) -> List[Dict[str, Any
             if v is None:
                 row[k] = ""
                 none_ls.append(k)
-    print(set(none_ls))
+    #print(set(none_ls))
             
     return rows
 
-'''def _flatten_approved_drugs(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Compact entries with: brand_name, active_ingredient, application, approval_date
-    """
+
+# Flatten 510k records for CSV/table
+def _flatten_510k(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for r in records:
-        appl_no = r.get("application_number") or r.get("appl_no") or ""
-        # approval date from first approved/Original submission if present
-        approval_date = ""
-        for sub in r.get("submissions", []) or []:
-            status = (sub.get("submission_status") or "").lower()
-            if "approved" in status:
-                approval_date = sub.get("submission_status_date") or sub.get("submission_public_date") or ""
-                break
-        for p in r.get("products", []) or []:
-            brand = _coerce_first(p.get("brand_name"))
-            # active_ingredients may be a list of dicts with {name}
-            ai = ""
-            if isinstance(p.get("active_ingredients"), list) and p["active_ingredients"]:
-                names = []
-                for ai_item in p["active_ingredients"]:
-                    name = ai_item.get("name") if isinstance(ai_item, dict) else ai_item
-                    if name:
-                        names.append(str(name))
-                ai = "; ".join(names)
-            else:
-                ai = _coerce_first(p.get("active_ingredients"), "")
-            rows.append({
-                "brand_name": brand,
-                "active_ingredient": ai,
-                "application": appl_no,
-                "approval_date": approval_date,
-            })
-    # de-duplicate identical rows
-    seen = set()
-    deduped = []
-    for row in rows:
-        key = (row["brand_name"], row["active_ingredient"], row["application"], row["approval_date"])
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(row)
-    return deduped'''
+        rows.append({
+            "k_number": r.get("k_number") or "",
+            "device_name": r.get("device_name") or "",
+            "applicant": r.get("applicant") or "",
+            "manufacturer_name": r.get("manufacturer_name") or "",
+            "product_code": r.get("product_code") or "",
+            "advisory_committee": r.get("advisory_committee") or "",
+            "clearance_type": r.get("clearance_type") or "",
+            "decision_code": r.get("decision_code") or "",
+            "decision_date": r.get("decision_date") or "",
+        })
+    return rows
+
+
+# Flatten PMA records for CSV/table
+def _flatten_pma(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for r in records:
+        rows.append({
+            "pma_number": r.get("pma_number") or "",
+            "trade_name": r.get("trade_name") or "",
+            "generic_name": r.get("generic_name") or "",
+            "applicant": r.get("applicant") or "",
+            "manufacturer_name": r.get("manufacturer_name") or "",
+            "product_code": r.get("product_code") or "",
+            "advisory_committee": r.get("advisory_committee") or "",
+            "decision_code": r.get("decision_code") or "",
+            "decision_date": r.get("decision_date") or "",
+        })
+    return rows
 
 @dataclass
 class CompanyOpenFDAIntel:
     company: str
     drugs_approved: List[Dict[str, Any]]
+    devices_510k: List[Dict[str, Any]]
+    devices_pma: List[Dict[str, Any]]
 
     def dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -157,7 +207,19 @@ def build_company_intel(company: str, *, max_records: int = 1000) -> CompanyOpen
     """
     OpenFDA-only aggregator:
       - Looks up drugs approved for a given sponsor/company via /drug/drugsfda
+      - Looks up devices (510k and PMA) for a company via /device/510k and /device/pma
     """
     records = _search_sponsor(company, limit=max_records)
     drugs = _flatten_approved_drugs(records)
-    return CompanyOpenFDAIntel(company=company, drugs_approved=drugs)
+
+    dev_510k_records = _search_device_510k(company, limit=max_records)
+    dev_pma_records = _search_device_pma(company, limit=max_records)
+    dev_510k = _flatten_510k(dev_510k_records)
+    dev_pma = _flatten_pma(dev_pma_records)
+
+    return CompanyOpenFDAIntel(
+        company=company,
+        drugs_approved=drugs,
+        devices_510k=dev_510k,
+        devices_pma=dev_pma,
+    )
