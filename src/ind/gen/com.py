@@ -20,27 +20,6 @@ import os
 from pathlib import Path
 from typing import Literal
 
-from ..utils import mkdir
-
-# Common commands for fastq files
-def access(pt: str):
-    ''' 
-    access(): make all files and subdirectories accessible on Harvard FASRC
-    
-    Parameters:
-    pt (str): path to parent directory
-
-    Dependencies: subprocess
-    '''
-    # Run command in the directory
-    command = 'chmod g+r . ; chmod g+rwxs -R . ; chmod g+x .'
-    print(f"terminal:\ncd {pt}\n{command}")
-    result = subprocess.run(f"{command}", shell=True, cwd=pt, capture_output=True, text=True)
-    
-    # Print output
-    if result.stdout: print(f"output:\n{result.stdout}")
-    if result.stderr: print(f"errors:\n{result.stderr}")
-
 # Environment variable management
 home = Path.home()
 shell_configs = {

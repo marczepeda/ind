@@ -35,7 +35,6 @@ import os
 import ast
 import csv
 import shutil
-import datetime # might use later
 import json
 
 from ..utils import try_parse, mkdir
@@ -47,7 +46,7 @@ def df_try_parse(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters: 
     df (dataframe): dataframe with columns to try_parse()
-    
+
     Dependencies: utils.try_parse()
     '''
     # Apply the parsing function to all columns

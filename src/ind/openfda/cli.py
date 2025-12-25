@@ -172,7 +172,7 @@ def add_subparser(subparsers: argparse._SubParsersAction, formatter_class: Any) 
     p_c.set_defaults(func=_cmd_count)
 
     # Help message for ind openfda query/count -h block text by Myformatter(RichHelpformatter_class):
-    if any(["ind" in argv for argv in sys.argv]) and "openfda" in sys.argv and ("--help" in sys.argv or "-h" in sys.argv):
+    if any(["ind" in argv for argv in sys.argv]) and "openfda" in sys.argv and any(["query" in sys.argv, "count" in sys.argv]) and ("--help" in sys.argv or "-h" in sys.argv):
         if "query" in sys.argv:
             p_q.print_help()
         if "count" in sys.argv:

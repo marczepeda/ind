@@ -1,6 +1,7 @@
 ''' 
 src/ind/gen/cli.py              Command Line Interface for IND General module
 ├── __init__.py                 Initializer
+├── html.py                     HTML module
 ├── io.py                       Input/Output module
 ├── plot.py                     Plot module
 ├── stat.py                     Statistical Analysis module
@@ -43,6 +44,9 @@ def add_common_plot_scat_args(subparser):
     subparser.add_argument("--cols_ord", nargs="+", help="Column order (list of values)")
     subparser.add_argument("--cols_exclude", nargs="+", help="Columns to exclude from coloring")
     subparser.add_argument("--stys", type=str, help="Style column name")
+    subparser.add_argument("--stys_order", nargs="+", help="Style order (list of values)")
+    subparser.add_argument("--mark_order", nargs="+", help="Marker order (list of marker styles)")
+    subparser.add_argument("--label", type=str, help="Column name for point labels; static text for images, interactive tooltips for HTML")
 
     subparser.add_argument("--dir", help="Output directory path", type=str, default='./out')
     subparser.add_argument("--file", help="Output file name", type=str, required=False, default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_scat.png')
@@ -63,6 +67,8 @@ def add_common_plot_scat_args(subparser):
     subparser.add_argument("--x_axis_font", type=str, default="Arial", help="X-axis label font family")
     subparser.add_argument("--x_axis_scale", type=str, default="linear", help="X-axis scale: linear, log, etc.")
     subparser.add_argument("--x_axis_dims", type=parse_tuple_int, default=(0,0), help="X-axis range as a tuple: start,end")
+    subparser.add_argument("--x_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for X-axis label")
+    subparser.add_argument("--x_ticks_size", type=int, default=9, help="X-axis tick labels font size")
     subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle of X-axis tick labels")
     subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
     subparser.add_argument("--x_ticks", nargs="+", help="Specific tick values for X-axis")
@@ -74,6 +80,8 @@ def add_common_plot_scat_args(subparser):
     subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Y-axis label font family")
     subparser.add_argument("--y_axis_scale", type=str, default="linear", help="Y-axis scale: linear, log, etc.")
     subparser.add_argument("--y_axis_dims", type=parse_tuple_int, default=(0,0), help="Y-axis range as a tuple: start,end")
+    subparser.add_argument("--y_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for Y-axis label")
+    subparser.add_argument("--y_ticks_size", type=int, default=9, help="Y-axis tick labels font size")
     subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle of Y-axis tick labels")
     subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
     subparser.add_argument("--y_ticks", nargs="+", help="Specific tick values for Y-axis")
@@ -86,8 +94,15 @@ def add_common_plot_scat_args(subparser):
     subparser.add_argument("--legend_loc", type=str, default="upper left", help="Location of the legend in the plot")
     subparser.add_argument("--legend_items", type=parse_tuple_int, default=(0,0), help="Legend item count as a tuple (used for layout)")
     subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in legend")
+    subparser.add_argument('--legend_columnspacing', type=int, default=argparse.SUPPRESS, help='space between columns in legend; only for html plots')
+    subparser.add_argument('--legend_handletextpad', type=float, default=argparse.SUPPRESS, help='space between marker and text in legend; only for html plots')
+    subparser.add_argument('--legend_labelspacing', type=float, default=argparse.SUPPRESS, help='vertical space between entries in legend; only for html plots')
+    subparser.add_argument('--legend_borderpad', type=float, default=argparse.SUPPRESS, help='padding inside legend box; only for html plots')
+    subparser.add_argument('--legend_handlelength', type=float, default=argparse.SUPPRESS, help='marker length in legend; only for html plots')
+    subparser.add_argument('--legend_size_html_multiplier', type=float, default=argparse.SUPPRESS, help='legend size multiplier for html plots')
 
     # Display and formatting
+    subparser.add_argument("--dpi", type=int, help="Figure dpi (Default: 600 for non-HTML, 150 for HTML)", default=0)
     subparser.add_argument("--show", action="store_true", help="Show the plot", default=False)
     subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize label/legend strings and replace underscores with spaces")
 
@@ -101,6 +116,8 @@ def add_common_plot_cat_args(subparser):
     # Optional core arguments
     subparser.add_argument("--x", help="X-axis column name", type=str, default="")
     subparser.add_argument("--y", help="Y-axis column name", type=str, default="")
+    subparser.add_argument("--cats_ord", nargs="+", help="Category column values order (x- or y-axis)")
+    subparser.add_argument("--cats_exclude", nargs="+", help="Category column values exclude (x- or y-axis)")
     subparser.add_argument("--cols", type=str, help="Color column name for grouping")
     subparser.add_argument("--cols_ord", nargs="+", help="Color column values order")
     subparser.add_argument("--cols_exclude", nargs="+", help="Color column values to exclude")
@@ -130,6 +147,8 @@ def add_common_plot_cat_args(subparser):
     subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for the X-axis label")
     subparser.add_argument("--x_axis_scale", type=str, default="linear", help="Scale of X-axis (e.g., linear, log)")
     subparser.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0, 0), help="X-axis range as tuple: start,end")
+    subparser.add_argument("--x_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for X-axis label")
+    subparser.add_argument("--x_ticks_size", type=int, default=9, help="Font size for X-axis tick labels")
     subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle for X-axis tick labels")
     subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
     subparser.add_argument("--x_ticks", nargs="+", help="Explicit tick values for X-axis")
@@ -141,6 +160,8 @@ def add_common_plot_cat_args(subparser):
     subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for the Y-axis label")
     subparser.add_argument("--y_axis_scale", type=str, default="linear", help="Scale of Y-axis (e.g., linear, log)")
     subparser.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0, 0), help="Y-axis range as tuple: start,end")
+    subparser.add_argument("--y_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for Y-axis label")
+    subparser.add_argument("--y_ticks_size", type=int, default=9, help="Font size for Y-axis tick labels")
     subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle for Y-axis tick labels")
     subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
     subparser.add_argument("--y_ticks", nargs="+", help="Explicit tick values for Y-axis")
@@ -153,8 +174,15 @@ def add_common_plot_cat_args(subparser):
     subparser.add_argument("--legend_loc", type=str, default="upper left", help="Location of the legend on the plot")
     subparser.add_argument("--legend_items", type=parse_tuple_int, default=(0, 0), help="Tuple for legend item layout")
     subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in the legend")
+    subparser.add_argument('--legend_columnspacing', type=int, default=argparse.SUPPRESS, help='space between columns in legend; only for html plots')
+    subparser.add_argument('--legend_handletextpad', type=float, default=argparse.SUPPRESS, help='space between marker and text in legend; only for html plots')
+    subparser.add_argument('--legend_labelspacing', type=float, default=argparse.SUPPRESS, help='vertical space between entries in legend; only for html plots')
+    subparser.add_argument('--legend_borderpad', type=float, default=argparse.SUPPRESS, help='padding inside legend box; only for html plots')
+    subparser.add_argument('--legend_handlelength', type=float, default=argparse.SUPPRESS, help='marker length in legend; only for html plots')
+    subparser.add_argument('--legend_size_html_multiplier', type=float, default=argparse.SUPPRESS, help='legend size multiplier for html plots')
 
     # Display and formatting
+    subparser.add_argument("--dpi", type=int, help="Figure dpi (Default: 600 for non-HTML, 150 for HTML)", default=0)
     subparser.add_argument("--show", action="store_true", help="Show the plot in a window", default=False)
     subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize labels and replace underscores with spaces")
 
@@ -185,7 +213,7 @@ def add_common_plot_dist_args(subparser):
     subparser.add_argument("--asp", type=int, default=5, help="Aspect ratio of the plot")
     subparser.add_argument("--tp", type=float, default=0.8, help="Top padding space")
     subparser.add_argument("--hs", type=int, default=0, help="Horizontal spacing between plots (if faceted)")
-    subparser.add_argument("--des", action="store_true", help="Remove plot spines (despine)", default=False)
+    subparser.add_argument("--despine", action="store_true", help="Remove plot spines (despine)", default=False)
 
     # Figure appearance
     subparser.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size formatted as 'width,height'")
@@ -201,6 +229,8 @@ def add_common_plot_dist_args(subparser):
     subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for X-axis label")
     subparser.add_argument("--x_axis_scale", type=str, default="linear", help="X-axis scale (e.g., linear, log)")
     subparser.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0, 0), help="X-axis range as tuple: start,end")
+    subparser.add_argument("--x_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for X-axis label")
+    subparser.add_argument("--x_ticks_size", type=int, default=9, help="Font size for X-axis tick labels")
     subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle for X-axis tick labels")
     subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
     subparser.add_argument("--x_ticks", nargs="+", help="Explicit tick values for X-axis")
@@ -212,6 +242,8 @@ def add_common_plot_dist_args(subparser):
     subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for Y-axis label")
     subparser.add_argument("--y_axis_scale", type=str, default="linear", help="Y-axis scale (e.g., linear, log)")
     subparser.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0, 0), help="Y-axis range as tuple: start,end")
+    subparser.add_argument("--y_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for Y-axis label")
+    subparser.add_argument("--y_ticks_size", type=int, default=9, help="Font size for Y-axis tick labels")
     subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle for Y-axis tick labels")
     subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
     subparser.add_argument("--y_ticks", nargs="+", help="Explicit tick values for Y-axis")
@@ -226,6 +258,7 @@ def add_common_plot_dist_args(subparser):
     subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in the legend")
 
     # Final display
+    subparser.add_argument("--dpi", type=int, help="Figure dpi (Default: 600 for non-HTML, 150 for HTML)", default=0)
     subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
     subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space legend/label values", default=False)
 
@@ -249,22 +282,32 @@ def add_common_plot_heat_args(subparser):
     subparser.add_argument("--lw", type=int, default=1, help="Line width for cell borders")
 
     subparser.add_argument("--annot", action="store_true", help="Display cell values as annotations", default=False)
+    subparser.add_argument("--center", type=float, default=0, help="Center value for colormap (Default: 0)")
     subparser.add_argument("--cmap", type=str, default="Reds", help="Matplotlib colormap to use for heatmap")
     subparser.add_argument("--sq", action="store_true", help="Use square aspect ratio for cells", default=False)
     subparser.add_argument("--cbar", action="store_true", help="Display colorbar", default=False)
+    subparser.add_argument("--cbar_label_size", type=int, default=argparse.SUPPRESS, help="Font size for colorbar label")
+    subparser.add_argument("--cbar_label_weight", type=str, default="bold", help="Font weight for colorbar label (Default: bold)", choices=['bold', 'normal', 'heavy'])
+    subparser.add_argument("--cbar_tick_size", type=int, default=argparse.SUPPRESS, help="Font size for colorbar ticks")
+    subparser.add_argument("--cbar_shrink", type=float, default=argparse.SUPPRESS, help="Shrink factor for colorbar")
+    subparser.add_argument("--cbar_aspect", type=int, default=argparse.SUPPRESS, help="Aspect ratio for colorbar")
+    subparser.add_argument("--cbar_pad", type=float, default=argparse.SUPPRESS, help="Padding for colorbar")
+    subparser.add_argument("--cbar_orientation", type=str, default=argparse.SUPPRESS, help="Orientation of colorbar (Default: 'vertical')", choices=['vertical', 'horizontal'])
 
     # Title and size
     subparser.add_argument("--title", type=str, default="", help="Plot title")
     subparser.add_argument("--title_size", type=int, default=18, help="Font size of the title")
     subparser.add_argument("--title_weight", type=str, default="bold", help="Font weight of the title (e.g., bold, normal)")
     subparser.add_argument("--title_font", type=str, default="Arial", help="Font family for the title")
-    subparser.add_argument("--figsize", type=parse_tuple_int, default=(10,6), help="Figure size formatted as 'width,height'")
+    subparser.add_argument("--figsize", type=parse_tuple_int, default=(5,5), help="Figure size formatted as 'width,height'")
 
     # X-axis
     subparser.add_argument("--x_axis", type=str, default="", help="X-axis label")
     subparser.add_argument("--x_axis_size", type=int, default=12, help="Font size for X-axis label")
     subparser.add_argument("--x_axis_weight", type=str, default="bold", help="Font weight for X-axis label")
     subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for X-axis label")
+    subparser.add_argument("--x_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for X-axis label")
+    subparser.add_argument("--x_ticks_size", type=int, default=9, help="Font size for X-axis tick labels")
     subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle for X-axis tick labels")
     subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
 
@@ -273,10 +316,13 @@ def add_common_plot_heat_args(subparser):
     subparser.add_argument("--y_axis_size", type=int, default=12, help="Font size for Y-axis label")
     subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Font weight for Y-axis label")
     subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for Y-axis label")
+    subparser.add_argument("--y_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for Y-axis label")
+    subparser.add_argument("--y_ticks_size", type=int, default=9, help="Font size for Y-axis tick labels")
     subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle for Y-axis tick labels")
     subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
 
     # Final display
+    subparser.add_argument("--dpi", type=int, help="Figure dpi (Default: 600 for non-HTML, 150 for HTML)", default=0)
     subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
     subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space labels/legend values", default=False)
 
@@ -315,6 +361,8 @@ def add_common_plot_stack_args(subparser):
     subparser.add_argument("--x_axis_size", type=int, default=12, help="Font size for X-axis label")
     subparser.add_argument("--x_axis_weight", type=str, default="bold", help="Font weight for X-axis label")
     subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for X-axis label")
+    subparser.add_argument("--x_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for X-axis label")
+    subparser.add_argument("--x_ticks_size", type=int, default=9, help="Font size for X-axis tick labels")
     subparser.add_argument("--x_ticks_rot", type=int, help="Rotation angle for X-axis tick labels")
     subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
 
@@ -324,6 +372,8 @@ def add_common_plot_stack_args(subparser):
     subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Font weight for Y-axis label")
     subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for Y-axis label")
     subparser.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0,0), help="Y-axis range as tuple: start,end")
+    subparser.add_argument("--y_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for Y-axis label")
+    subparser.add_argument("--y_ticks_size", type=int, default=9, help="Font size for Y-axis tick labels")
     subparser.add_argument("--y_ticks_rot", type=int, help="Rotation angle for Y-axis tick labels")
     subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
 
@@ -334,8 +384,15 @@ def add_common_plot_stack_args(subparser):
     subparser.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1, 1), help="Anchor position for the legend bounding box")
     subparser.add_argument("--legend_loc", type=str, default="upper left", help="Legend location on the plot")
     subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in the legend")
+    subparser.add_argument('--legend_columnspacing', type=int, default=argparse.SUPPRESS, help='space between columns in legend; only for html plots')
+    subparser.add_argument('--legend_handletextpad', type=float, default=argparse.SUPPRESS, help='space between marker and text in legend; only for html plots')
+    subparser.add_argument('--legend_labelspacing', type=float, default=argparse.SUPPRESS, help='vertical space between entries in legend; only for html plots')
+    subparser.add_argument('--legend_borderpad', type=float, default=argparse.SUPPRESS, help='padding inside legend box; only for html plots')
+    subparser.add_argument('--legend_handlelength', type=float, default=argparse.SUPPRESS, help='marker length in legend; only for html plots')
+    subparser.add_argument('--legend_size_html_multiplier', type=float, default=argparse.SUPPRESS, help='legend size multiplier for html plots')
 
     # Display and formatting
+    subparser.add_argument("--dpi", type=int, help="Figure dpi (Default: 600 for non-HTML, 150 for HTML)", default=0)
     subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
     subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space legend/label values", default=False)
 
@@ -345,14 +402,16 @@ def add_common_plot_vol_args(subparser):
     '''
     # Required arguments
     subparser.add_argument("--df", type=str, help="Input dataframe file path")
-    subparser.add_argument("--x", type=str, help="X-axis column name (e.g., fold change)")
-    subparser.add_argument("--y", type=str, help="Y-axis column name (e.g., p-value)")
+    subparser.add_argument("--FC", type=str, help="Fold change column name (X-axis)", required=True)
+    subparser.add_argument("--pval", type=str, help="P-value column name (Y-axis)", required=True)
 
     # Optional data columns
     subparser.add_argument("--stys", type=str, help="Style column name for custom markers")
     subparser.add_argument("--size", type=str, help="Column name used to scale point sizes")
     subparser.add_argument("--size_dims", type=parse_tuple_float, help="Size range for points formatted as min,max")
     subparser.add_argument("--label", type=str, help="Column containing text labels for points")
+    subparser.add_argument("--stys_order", type=str, nargs="+", help="Style column values order")
+    subparser.add_argument("--mark_order", type=str, nargs="+", help="Markers order for style column values order")
 
     # Thresholds
     subparser.add_argument("--FC_threshold", type=float, default=2, help="Fold change threshold for significance")
@@ -381,6 +440,8 @@ def add_common_plot_vol_args(subparser):
     subparser.add_argument("--x_axis_weight", type=str, default="bold", help="Font weight for X-axis label")
     subparser.add_argument("--x_axis_font", type=str, default="Arial", help="Font family for X-axis label")
     subparser.add_argument("--x_axis_dims", type=parse_tuple_float, default=(0, 0), help="X-axis range formatted as min,max")
+    subparser.add_argument("--x_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for X-axis label")
+    subparser.add_argument("--x_ticks_size", type=int, default=9, help="Font size for X-axis tick labels")
     subparser.add_argument("--x_ticks_rot", type=int, default=0, help="Rotation angle for X-axis tick labels")
     subparser.add_argument("--x_ticks_font", type=str, default="Arial", help="Font family for X-axis tick labels")
     subparser.add_argument("--x_ticks", nargs="+", help="Custom tick values for X-axis")
@@ -391,6 +452,8 @@ def add_common_plot_vol_args(subparser):
     subparser.add_argument("--y_axis_weight", type=str, default="bold", help="Font weight for Y-axis label")
     subparser.add_argument("--y_axis_font", type=str, default="Arial", help="Font family for Y-axis label")
     subparser.add_argument("--y_axis_dims", type=parse_tuple_float, default=(0, 0), help="Y-axis range formatted as min,max")
+    subparser.add_argument("--y_axis_pad", type=int, default=argparse.SUPPRESS, help="Padding for Y-axis label")
+    subparser.add_argument("--y_ticks_size", type=int, default=9, help="Font size for Y-axis tick labels")
     subparser.add_argument("--y_ticks_rot", type=int, default=0, help="Rotation angle for Y-axis tick labels")
     subparser.add_argument("--y_ticks_font", type=str, default="Arial", help="Font family for Y-axis tick labels")
     subparser.add_argument("--y_ticks", nargs="+", help="Custom tick values for Y-axis")
@@ -401,13 +464,21 @@ def add_common_plot_vol_args(subparser):
     subparser.add_argument("--legend_size", type=int, default=9, help="Font size for legend items")
     subparser.add_argument("--legend_bbox_to_anchor", type=parse_tuple_float, default=(1, 1), help="Bounding box anchor for legend")
     subparser.add_argument("--legend_loc", type=str, default="upper left", help="Legend location on the plot")
-    subparser.add_argument("--legend_items", type=parse_tuple_int, default=(0, 0), help="Tuple defining legend layout")
     subparser.add_argument("--legend_ncol", type=int, default=1, help="Number of columns in the legend")
+    subparser.add_argument('--legend_columnspacing', type=int, default=argparse.SUPPRESS, help='space between columns in legend; only for html plots')
+    subparser.add_argument('--legend_handletextpad', type=float, default=argparse.SUPPRESS, help='space between marker and text in legend; only for html plots')
+    subparser.add_argument('--legend_labelspacing', type=float, default=argparse.SUPPRESS, help='vertical space between entries in legend; only for html plots')
+    subparser.add_argument('--legend_borderpad', type=float, default=argparse.SUPPRESS, help='padding inside legend box; only for html plots')
+    subparser.add_argument('--legend_handlelength', type=float, default=argparse.SUPPRESS, help='marker length in legend; only for html plots')
+    subparser.add_argument('--legend_size_html_multiplier', type=float, default=argparse.SUPPRESS, help='legend size multiplier for html plots')
 
     # Boolean switches
-    subparser.add_argument("--display_size", action="store_true", help="Show point sizes as annotations", default=False)
-    subparser.add_argument("--display_labels", action="store_true", help="Display text labels for selected points", default=False)
+    subparser.add_argument("--dont_display_legend", action="store_false", help="Don't display legend on plot", default=True)
+    subparser.add_argument("--display_labels", type=str, nargs="+", help="Display labels for values if label column specified (Options: 'FC & p-value', 'FC', 'p-value', 'NS', 'all', or ['label1', 'label2', ..., 'labeln'])", default=["FC & p-value"])
+    subparser.add_argument("--dont_display_axis", dest='display_axis', action="store_false", default=True, help="Display x- and y-axis lines (Default: True)")
+    subparser.add_argument("--display_lines", action="store_true", help="Display lines for threshold (Default: False)", default=False)
     subparser.add_argument("--return_df", action="store_true", help="Return annotated DataFrame after plotting", default=False)
+    subparser.add_argument("--dpi", type=int, help="Figure dpi (Default: 600 for non-HTML, 150 for HTML)", default=0)
     subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
     subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space labels/legend items", default=False)
 
@@ -422,7 +493,7 @@ def add_subparser(subparsers, formatter_class=None):
     '''
     edms.gen.plot:
     - scat(): creates scatter plot related graphs
-    - cat(): creates category dependent graphs
+    - cat(): creates categorical graphs
     - dist(): creates distribution graphs
     - heat(): creates heatmap graphs
     - stack(): creates stacked bar plot
@@ -440,7 +511,7 @@ def add_subparser(subparsers, formatter_class=None):
         add_common_plot_scat_args(parser_plot_scat)
         parser_plot_scat.set_defaults(func=p.scat)
 
-    # cat(): Creates category dependent graphs (bar, box, violin, swarm, strip, point, count, bar_swarm, box_swarm, violin_swarm)
+    # cat(): Creates categorical graphs (bar, box, violin, swarm, strip, point, count, bar_swarm, box_swarm, violin_swarm)
     parser_plot_type_bar = subparsers_plot.add_parser("bar", help="Create bar plot", description="Create bar plot", formatter_class=formatter_class)
     parser_plot_type_box = subparsers_plot.add_parser("box", help="Create box plot", description="Create box plot", formatter_class=formatter_class)
     parser_plot_type_violin = subparsers_plot.add_parser("violin", help="Create violin plot", description="Create violin plot", formatter_class=formatter_class)
@@ -464,7 +535,7 @@ def add_subparser(subparsers, formatter_class=None):
 
     for parser_plot_dist in [parser_plot_type_hist, parser_plot_type_kde, parser_plot_type_hist_kde, parser_plot_type_rid]:
         add_common_plot_dist_args(parser_plot_dist)
-        parser_plot_cat.set_defaults(func=p.dist)
+        parser_plot_dist.set_defaults(func=p.dist)
 
     # heat(): Creates heatmap graphs
     parser_plot_type_heat = subparsers_plot.add_parser("heat", help="Create heatmap plot", description="Create heatmap plot", formatter_class=formatter_class)
@@ -527,15 +598,16 @@ def add_subparser(subparsers, formatter_class=None):
     parser_stat_correlation = subparsers_stat.add_parser("correlation", help="Compute correlation matrix", description="Compute correlation matrix", formatter_class=formatter_class)
 
     parser_stat_correlation.add_argument("--df", type=str, help="Input file path",required=True)
-
-    parser_stat_correlation.add_argument("--dir", type=str, help="Output directory",default='../out')
-    parser_stat_correlation.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_correlation.csv')
-
     parser_stat_correlation.add_argument("--var_cols", nargs="+", help="List of 2 variable columns for tidy format")
     parser_stat_correlation.add_argument("--value_cols", nargs="+", help="List of numerical columns to correlate")
     parser_stat_correlation.add_argument("--method", type=str, default="pearson", choices=["pearson", "spearman", "kendall"],
                                          help="Correlation method to use (Default: pearson)")
     parser_stat_correlation.add_argument("--numeric_only", action="store_true", help="Only use numeric columns (Default: True)")
+    parser_stat_correlation.add_argument("--no_plot", dest="plot", action="store_false", help="Don't generate correlation matrix plot", default=True)
+    parser_stat_correlation.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_correlation.add_argument("--file_data", type=str, help="Output data file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_correlation.csv')
+    parser_stat_correlation.add_argument("--file_plot", type=str, help="Output plot file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_correlation.pdf')
+    add_common_plot_heat_args(parser_stat_correlation, stat_parser=True)
 
     parser_stat_correlation.set_defaults(func=st.correlation)
 
@@ -549,11 +621,31 @@ def add_subparser(subparsers, formatter_class=None):
     parser_stat_compare.add_argument("--var", type=str, help="Variable column name",required=True)
     parser_stat_compare.add_argument("--count", type=str, help="Count column name",required=True)
 
-    parser_stat_compare.add_argument("--psuedocount", type=int, default=1, help="Pseudocount to avoid log(0) or divide-by-zero errors")
+    parser_stat_compare.add_argument("--pseudocount", type=int, default=1, help="Pseudocount to avoid log(0) or divide-by-zero errors")
+    parser_stat_compare.add_argument("--alternative", type=str, default="two-sided", choices=["two-sided", "less", "greater"], help="Alternative hypothesis for Fisher's exact test (Default: two-sided)")
     parser_stat_compare.add_argument("--dir", type=str, help="Output directory",default='../out')
     parser_stat_compare.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_compare.csv')
+    parser_stat_compare.add_argument("--verbose", action="store_true", help="Print progress to console", default=False)
 
     parser_stat_compare.set_defaults(func=st.compare)
+
+    # odds_ratio(): computes odds ratio relative to a specified condition (OR = (A/B)/(C/D))
+    parser_stat_odds_ratio = subparsers_stat.add_parser("odds_ratio", help="Computes odds ratios relative to a specified condition & variable (e.g., unedited & WT)", description="Compute odds ratio between conditions", formatter_class=formatter_class)
+
+    parser_stat_odds_ratio.add_argument("--df", type=str, help="Input file path",required=True)
+    parser_stat_odds_ratio.add_argument("--cond", type=str, help="Condition column name",required=True)
+    parser_stat_odds_ratio.add_argument("--cond_comp", type=str, help="Condition for comparison group",required=True)
+    parser_stat_odds_ratio.add_argument("--var", type=str, help="Variable column name",required=True)
+    parser_stat_odds_ratio.add_argument("--var_comp", type=str, help="Variable name for comparison (e.g., WT)",required=True)
+    parser_stat_odds_ratio.add_argument("--count", type=str, help="Count column name",required=True)
+    
+    parser_stat_odds_ratio.add_argument("--pseudocount", type=int, default=1, help="Pseudocount to avoid /0 (Default: 1)")
+    parser_stat_odds_ratio.add_argument("--alternative", type=str, default="two-sided", choices=["two-sided", "less", "greater"], help="Alternative hypothesis for Fisher's exact test (Default: two-sided)")
+    parser_stat_odds_ratio.add_argument("--dir", type=str, help="Output directory",default='../out')
+    parser_stat_odds_ratio.add_argument("--file", type=str, help="Output file name",default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_odds_ratio.csv')
+    parser_stat_odds_ratio.add_argument("--verbose", action="store_true", help="Print progress to console", default=False)
+
+    parser_stat_odds_ratio.set_defaults(func=st.odds_ratio)
 
     '''
     edms.gen.io:
@@ -569,14 +661,27 @@ def add_subparser(subparsers, formatter_class=None):
     # Create subparsers for commands
     parser_io_in_subs = subparsers_io.add_parser("in_subs", help="*No FASRC* Moves all files with a given suffix into subfolders named after the files (excluding the suffix)", description="*No FASRC* Moves all files with a given suffix into subfolders named after the files (excluding the suffix)", formatter_class=formatter_class)
     parser_io_out_subs = subparsers_io.add_parser("out_subs", help="*No FASRC* Delete subdirectories and move their files to the parent directory", description="*No FASRC* Delete subdirectories and move their files to the parent directory", formatter_class=formatter_class)
+    parser_io_create_sh = subparsers_io.add_parser("create_sh", help='Generate SLURM shell script for Harvard FASRC cluster.', description='Generate SLURM shell script for Harvard FASRC cluster.', formatter_class=formatter_class)
+    parser_io_split_R1_R2 = subparsers_io.add_parser("split_R1_R2", help='*No FASRC* Split paired reads into new R1 and R2 subdirectories at the parent directory.', description='*No FASRC* Split paired reads into new R1 and R2 subdirectories at the parent directory.', formatter_class=formatter_class)
     parser_io_excel_csvs = subparsers_io.add_parser("excel_csvs", help='Exports excel file to .csv files in specified directory.', description='Exports excel file to .csv files in specified directory.', formatter_class=formatter_class)
 
     # Add common arguments
-    for parser_io_common in [parser_io_in_subs,parser_io_out_subs]:
+    for parser_io_common in [parser_io_in_subs,parser_io_out_subs,parser_io_split_R1_R2]:
         parser_io_common.add_argument("--dir", help="Path to parent directory", type=str, default='.')
     
     # in_subs() arguments
     parser_io_in_subs.add_argument("--suf", help="File suffix (e.g., '.txt', '.csv') to filter files.", type=str, required=True) 
+    
+    # create_sh(): creates a shell script with SLURM job submission parameters for Harvard FASRC cluster.
+    parser_io_create_sh.add_argument('--dir', type=str, help='Directory to save the shell script.', default='.')
+    parser_io_create_sh.add_argument('--file', type=str, help='Name of the shell script file to create.',default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.sh')
+    parser_io_create_sh.add_argument('--cores', type=int, default=1, help='Number of CPU cores to request.')
+    parser_io_create_sh.add_argument('--partition', type=str, default='serial_requeue', help='SLURM partition to use.')
+    parser_io_create_sh.add_argument('--time', type=str, default='0-00:10', help='Job run time in D-HH:MM format.')
+    parser_io_create_sh.add_argument('--mem', type=int, default=1000, help='Memory in MB.')
+    parser_io_create_sh.add_argument('--email', type=str, default=None, help='Notification email address.')
+    parser_io_create_sh.add_argument('--python', type=str, default='python/3.12.5-fasrc01', help='Python module to load.')
+    parser_io_create_sh.add_argument('--env', type=str, default='edms', help='Conda environment to activate.')
 
     # excel_csvs(): exports excel file to .csv files in specified directory 
     parser_io_excel_csvs.add_argument('--pt', type=str, help='Excel file path', required=True)
@@ -585,11 +690,12 @@ def add_subparser(subparsers, formatter_class=None):
     # Call command functions
     parser_io_in_subs.set_defaults(func=io.in_subs)
     parser_io_out_subs.set_defaults(func=io.out_subs)
+    parser_io_create_sh.set_defaults(func=io.create_sh)
+    parser_io_split_R1_R2.set_defaults(func=io.split_R1_R2)
     parser_io_excel_csvs.set_defaults(func=io.excel_csvs)
 
     '''
     edms.gen.com:
-    - access(): make all files and subdirectories accessible on Harvard FASRC
     - create_export_var(): create a persistent environment variable by adding it to the user's shell config.
     - view_export_vars(): View the current export variables in the user's shell config.
     '''
@@ -597,13 +703,9 @@ def add_subparser(subparsers, formatter_class=None):
     subparsers_com = parser_com.add_subparsers()
     
     # Create subparsers for commands
-    parser_com_access = subparsers_com.add_parser("access", help="Make all files and subdirectories accessible on Harvard FASRC", description="Make all files and subdirectories accessible on Harvard FASRC", formatter_class=formatter_class)
     parser_com_create_export_var = subparsers_com.add_parser("create_export_var", help="Create a persistent export variable by adding it to the user's shell config.", description="Create a persistent export variable by adding it to the user's shell config.", formatter_class=formatter_class)
     parser_com_view_export_vars = subparsers_com.add_parser("view_export_vars", help="View the current export variables in the user's shell config.", description="View the current export variables in the user's shell config.", formatter_class=formatter_class)
 
-    # access arguments
-    parser_com_access.add_argument("--pt", help="Path to parent directory", type=str, default='.')
-    
     # create_export_var arguments
     parser_com_create_export_var.add_argument("--name", help="Name of the environment variable (e.g., MYPROJ)", required=True)
     parser_com_create_export_var.add_argument("--pt", help="Path the variable should point to (e.g., ~/projects/myproj)", required=True)
@@ -616,3 +718,26 @@ def add_subparser(subparsers, formatter_class=None):
     parser_com_access.set_defaults(func=com.access)
     parser_com_create_export_var.set_defaults(func=com.create_export_var)
     parser_com_view_export_vars.set_defaults(func=com.view_export_vars)
+
+    '''
+    edms.gen.html:
+    - make_html_index(): Create an index HTML that links to other HTML files in `dir`.
+        - Uses <title> from each HTML file if available; falls back to stem/filename.
+        - Makes titles into buttons.
+        - Optionally embeds a preview iframe that updates when you click a button.
+        - Displays plot links in a responsive grid; `grid_cols` controls the default column count.
+    '''
+    parser_html = subparsers.add_parser("html", help="HTML Index Creation", description="HTML Index Creation", formatter_class=formatter_class)
+    
+    parser_html.add_argument("--dir", type=str, help="Directory containing HTML files to index", default=".")
+    parser_html.add_argument("--file", type=str, help="Output HTML index file name", default="index.html")
+    parser_html.add_argument("--recursive", action="store_true", help="Recursively search subdirectories for HTML files", default=False)
+    parser_html.add_argument("--exclude", type=str, nargs="+", help="List of filenames to exclude (case insensitive)", default=[])
+    parser_html.add_argument("--sort", type=str, choices=["title", "name", "mtime"], help="Sort HTML files by 'title', 'name', or 'mtime' (modification time)", default="title")
+    parser_html.add_argument("--no_preview", dest="preview", action="store_false", help="Don't include an iframe preview panel in the index", default=True)
+    parser_html.add_argument("--grid_cols", type=int, help="Number of columns in the responsive grid layout", default=3)
+    parser_html.add_argument("--image_types", type=str, nargs="+", help="List of image file extensions to include (e.g. .png .jpg .gif). If not specified, only .html files are included.", default=None)
+    parser_html.add_argument("--preview_height_px", type=int, help="Height of the preview iframe in pixels", default=900)
+    parser_html.add_argument("--icon", type=str, help="Name of the SVG icon file (without .svg) to use as favicon", default="python")
+    
+    parser_html.set_defaults(func=ht.make_html_index)

@@ -9,21 +9,26 @@ Usage:
 - describe(): returns descriptive statistics for numerical columns in a DataFrame
 - difference(): computes the appropriate statistical test(s) and returns the p-value(s)
 - correlation(): returns a correlation matrix
+- weighted_correlation(): computes the weighted correlation
+
+[Statistics & Plotting]
+- corr_line(): compute linear regression line and add it to the scatter plot 
+- weighted_corr_line(): compute weighted linear regression line and add it to the scatter plot
 
 [Comparison]
 - compare(): computes FC, pval, and log transformations relative to a specified condition
+- odds_ratio(): computes odds ratio relative to a specified condition (OR = (A/B)/(C/D))
 '''
 
 # Import packages
 import itertools
 import pandas as pd
 import numpy as np
-from scipy.stats import skew, kurtosis, ttest_ind, ttest_rel, f_oneway, ttest_ind, ttest_rel, mannwhitneyu, wilcoxon
+from scipy.stats import skew, kurtosis, ttest_ind, ttest_rel, f_oneway, ttest_ind, ttest_rel, mannwhitneyu, wilcoxon, rankdata, fisher_exact
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from statsmodels.stats.anova import AnovaRM
 from statsmodels.stats.multitest import multipletests
-from . import io
-from . import tidy as t
+from . import io, tidy as t, plot as p
 
 # Statistics
 def describe(df: pd.DataFrame | str, cols:list=[], group:str='', dir:str=None, file:str=None) -> pd.DataFrame:
@@ -70,7 +75,7 @@ def describe(df: pd.DataFrame | str, cols:list=[], group:str='', dir:str=None, f
         io.save(dir=dir,file=file,obj=descriptive)  
     return descriptive
 
-def difference(df: pd.DataFrame | str,data_col: str, compare_col: str, compare: list,
+def difference(df: pd.DataFrame | str, data_col: str, compare_col: str, compare: list,
                same: bool=False, para: bool=True, alpha: float=0.05, within_cols:list=[], method:str='holm',
                dir: str=None, file: str=None) -> pd.DataFrame:
     ''' 
@@ -243,9 +248,9 @@ def difference(df: pd.DataFrame | str,data_col: str, compare_col: str, compare: 
     return inference
 
 def correlation(df: pd.DataFrame | str, var_cols: list=[], value_cols: list=[], method: str='pearson', numeric_only: bool=True,
-                dir:str=None, file:str=None) -> pd.DataFrame:
+                plot: bool=True, dir:str=None, file_data:str=None, file_plot:str=None, **kwargs_plot) -> pd.DataFrame:
     ''' 
-    correlation(): returns a correlation matrix
+    correlation(): returns a correlation matrix & plot
     
     Parameters:
     df (dataframe | str): pandas dataframe (or file path)
@@ -253,8 +258,11 @@ def correlation(df: pd.DataFrame | str, var_cols: list=[], value_cols: list=[], 
     value_cols (list, optional): list of numerical column names to compute statistics; single column name for tidy dataframe (optional)
     method (str, optional): pearson, spearman, or kendall (Default: pearson)
     numeric_only (bool, optional): only calculates correlations for numeric columns (Default: True)
+    plot (bool, optional): generate correlation matrix plot (Default: True)
     dir (str, optional): save directory
-    file (str, optional): save file
+    file_data (str, optional): save data file (e.g., csv)
+    file_plot (str, optional): save plot file (e.g., pdf)
+    kwargs_plot (dict, optional): plotting keyword arguments
     
     Depedencies: pandas, io
     '''
@@ -266,14 +274,175 @@ def correlation(df: pd.DataFrame | str, var_cols: list=[], value_cols: list=[], 
     elif len(value_cols)>=1: df = df[value_cols] # Isolate specified columns for non-tidy dataframe
     df_corr = df.corr(method=method,numeric_only=numeric_only) # Correlation matrix with specified method
 
-    # Save & return correlation matrix
-    if dir is not None and file is not None:
-        io.save(dir=dir,file=file,obj=df_corr,id=True) 
+    # Plot, save & return correlation matrix
+    if plot == True:
+        p.heat(df=df_corr, cbar_label=method, dir=dir, file=file_plot, **kwargs_plot)
+    if dir is not None and file_data is not None:
+        io.save(dir=dir,file=file_data,obj=df_corr,id=True)
     return df_corr
 
+def weighted_correlation(df: pd.DataFrame | str, x: str, y: str, weight: str=None,
+                        method: str='pearson') -> float:
+    ''' 
+    weighted_correlation(): computes the weighted correlation
+    
+    Parameters:
+    df (dataframe | str): pandas dataframe (or file path)
+    x (str): first variable column name
+    y (str): second variable column name
+    weight (str, optional): weights column name (Default: None)
+    method (str, optional): pearson, spearman, or kendall (Default: pearson)
+    
+    Dependencies: numpy
+    '''
+    # Get dataframe from file path if needed
+    if type(df)==str:
+        df = io.get(pt=df)
+    
+    if weight is None: # Unweighted correlation
+        weight ='__weight__'
+        df[weight] = [1]*len(df)
+
+    def weighted_pearson(x, y, w):
+        ''' 
+        weighted_pearson() Compute weighted Pearson correlation coefficient
+        '''
+        x = np.asarray(x, dtype=float)
+        y = np.asarray(y, dtype=float)
+        w = np.asarray(w, dtype=float)
+
+        # normalize weights (optional but numerically nicer)
+        w = w / w.sum()
+
+        mx = np.sum(w * x)
+        my = np.sum(w * y)
+
+        cov_xy = np.sum(w * (x - mx) * (y - my))
+        sx = np.sqrt(np.sum(w * (x - mx)**2))
+        sy = np.sqrt(np.sum(w * (y - my)**2))
+
+        return cov_xy / (sx * sy)
+
+    if method == 'pearson':
+        return weighted_pearson(df[x], df[y], df[weight])
+
+    elif method == 'spearman':
+        x = np.asarray(df[x], dtype=float)
+        y = np.asarray(df[y], dtype=float)
+        w = np.asarray(df[weight], dtype=float)
+
+        # rank the data (average ranks for ties, like standard Spearman)
+        rx = rankdata(x, method="average")
+        ry = rankdata(y, method="average")
+
+        return weighted_pearson(rx, ry, w)
+    
+    elif method == 'kendall':
+        x = np.asarray(df[x], dtype=float)
+        y = np.asarray(df[y], dtype=float)
+        n = len(x)
+        w = np.asarray(df[weight], dtype=float)
+
+        num = 0.0
+        den_x = 0.0
+        den_y = 0.0
+
+        for i in range(n - 1):
+            for j in range(i + 1, n):
+                wxw = w[i] * w[j]
+
+                sx = np.sign(x[i] - x[j])
+                sy = np.sign(y[i] - y[j])
+
+                # skip pairs tied in x or y (no ordering information)
+                if sx == 0 or sy == 0:
+                    continue
+
+                num += wxw * sx * sy      # +wxw for concordant, -wxw for discordant
+                den_x += wxw * (sx**2)    # == wxw
+                den_y += wxw * (sy**2)    # == wxw
+
+        if den_x == 0 or den_y == 0:
+            return np.nan
+
+        return num / np.sqrt(den_x * den_y)
+
+    else:
+        raise ValueError(f"Invalid method: {method}. Choose 'pearson', 'spearman', or 'kendall'.")
+
+# Statistics & Plotting
+def corr_line(df: pd.DataFrame, x: str, y: str, ax=None, 
+                color='black', linestyle='--', linewidth=1, alpha=0.5):
+    ''' 
+    corr_line(): compute linear regression line and add it to the scatter plot 
+
+    Parameters:
+    df (pandas.DataFrame): dataframe with x and y data
+    x (str): x data column
+    y (str): y data column
+    ax (matplotlib.axes.Axes, optional): Axes object to plot on
+    color (str, optional): line color (Default: 'black')
+    linestyle (str, optional): line style (Default: '--')
+    linewidth (int, optional): line width (Default: 1)
+    alpha (float, optional): transparency level (Default: 0.5)
+    '''
+    x = np.asarray(df[x], dtype=float)
+    y = np.asarray(df[y], dtype=float)
+
+    # Fit slope (b) and intercept (a)
+    b, a = np.polyfit(x, y, 1)
+
+    # Make line
+    xx = np.linspace(x.min(), x.max(), 200)
+    yy = a + b * xx
+
+    ax.plot(xx, yy, color=color, linestyle=linestyle, linewidth=linewidth, alpha=alpha)
+    return a, b
+
+def weighted_corr_line(df: pd.DataFrame, x: str, y: str, weight: str, ax=None, 
+                        color='black', linestyle='--', linewidth=1, alpha=0.5):
+    '''
+    weighted_corr_line(): compute weighted linear regression line and add it to the scatter plot
+
+    Parameters:
+    df (pandas.DataFrame): dataframe with x, y, and weight data
+    x (str): x data column
+    y (str): y data column
+    weight (str): weight data column
+    ax (matplotlib.axes.Axes, optional): Axes object to plot on
+    color (str, optional): line color (Default: 'black')
+    linestyle (str, optional): line style (Default: '--')
+    linewidth (int, optional): line width (Default: 1)
+    alpha (float, optional): transparency level (Default: 0.5)
+    '''
+    x = np.asarray(df[x], float)
+    y = np.asarray(df[y], float)
+    w = np.asarray(df[weight], float)
+
+    # Normalize weights
+    w = w / w.sum()
+
+    # Weighted means
+    mx = np.sum(w * x)
+    my = np.sum(w * y)
+
+    # Weighted slope
+    b = np.sum(w * (x - mx) * (y - my)) / np.sum(w * (x - mx)**2)
+
+    # Weighted intercept
+    a = my - b * mx
+
+    # Plot the line
+    xx = np.linspace(x.min(), x.max(), 200)
+    yy = a + b * xx
+
+    ax.plot(xx, yy, color=color, linestyle=linestyle, linewidth=linewidth, alpha=alpha)
+    return a, b
+
 # Comparison
-def compare(df: pd.DataFrame | str, sample: str, cond: str, cond_comp: str, var: str, count: str, psuedocount: int=1, 
-            dir:str=None, file:str=None) -> pd.DataFrame:
+def compare(df: pd.DataFrame | str, sample: str, cond: str, cond_comp: str, 
+            var: str, count: str, pseudocount: int=1, alternative: str='two-sided',
+            dir:str=None, file:str=None, verbose:bool=False) -> pd.DataFrame:
     ''' 
     compare(): computes FC, pval, and log transformations relative to a specified condition
 
@@ -284,11 +453,11 @@ def compare(df: pd.DataFrame | str, sample: str, cond: str, cond_comp: str, var:
     cond_comp (str): condition for comparison group
     var (str): variable column name
     count (str): count column name
-    psuedocount (int, optional): psuedocount to avoid log(0) & /0 (Default: 1)
+    pseudocount (int, optional): pseudocount to avoid log(0) & /0 (Default: 1)
+    alternative (str, optional): alternative hypothesis for statistical test ('two-sided', 'less', or 'greater'; Default: 'two-sided')
     dir (str, optional): save directory
     file (str, optional): save file
-    
-    Dependencies: Bio.Seq.Seq, pandas, numpy, io, tidy, edit_1(), dms_cond(), & aa_props
+    verbose (bool, optional): print progress to console (Default: False)
     '''
     # Get dataframe from file path if needed
     if type(df)==str:
@@ -298,61 +467,216 @@ def compare(df: pd.DataFrame | str, sample: str, cond: str, cond_comp: str, var:
     meta_cols = list(df.columns)
     meta_cols.remove(count)
 
-    print(f'Add psuedocount ({psuedocount}) to avoid log(0) & compute fraction per million (FPM)')
-    df[f'{count}+{psuedocount}'] = df[count]+psuedocount
-    dc = t.split(df=df,key=sample)
-    for s,df_sample in dc.items():
-        count_total = sum(df_sample[count])
-        dc[s]['FPM']=[c/count_total*1000000 for c in df_sample[count]]
+    if verbose: print(f'Add pseudocount ({pseudocount}) to avoid log(0) & compute fraction per million (FPM)')
+    df[f'{count}+{pseudocount}'] = df[count] + pseudocount
+    dc = t.split(df=df, key=sample)
+    for s, df_sample in dc.items():
+        count_total = float(df_sample[count].sum())
+        n_rows = int(df_sample.shape[0])
+        count_total_pc = count_total + pseudocount * n_rows
 
-    print('Group samples by condition & compute averages')
+        # Classic FPM; avoid divide-by-zero
+        if count_total > 0:
+            dc[s]['FPM'] = [c / count_total * 1_000_000 for c in df_sample[count]]
+        else:
+            dc[s]['FPM'] = [0.0] * n_rows
+
+        # Pseudocount-adjusted FPM for robust FC (adds pseudocount to each observation and to the library size)
+        if count_total_pc > 0:
+            dc[s]['FPM_pc'] = [(c + pseudocount) / count_total_pc * 1_000_000 for c in df_sample[count]]
+        else:
+            dc[s]['FPM_pc'] = [0.0] * n_rows
+
+    if verbose: print('Group samples by condition & compute averages')
     df_cond_stat = pd.DataFrame()
     # Define aggregation dictionary dynamically
-    agg_dict = {count: 'mean', 
-                f'{count}+{psuedocount}': 'mean',
-                'FPM': ['mean',list]} # Include both mean and list of original values
-    for col in meta_cols: # Add metadata columns to be aggregated as sets
+    agg_dict = {}
+    for col in meta_cols: # Include metadata columns as sets
         agg_dict[col] = lambda x: set(x)
+    # Include both mean and list of original values
+    agg_dict[count] = 'mean'
+    agg_dict[f'{count}+{pseudocount}'] = 'mean'
+    agg_dict['FPM'] = ['mean', list]
+    agg_dict['FPM_pc'] = ['mean', list]
 
     # Join samples back into 1 dataframe and split by condition
-    for c,df_cond in t.split(df=t.join(dc=dc,col=sample),key=cond).items(): # Iterate through conditions
-        print(c)
-        # Group by variable and aggregate
-        df_cond_agg = df_cond.groupby(by=var).agg(agg_dict).reset_index(drop=True)
-        df_cond_agg.columns = ['_'.join(col).strip('_') for col in df_cond_agg.columns] # Flatten multi-level column names
-        for col in df_cond_agg.columns: # Change metadata sets to comma-seperated strings or lists
+    for c, df_cond in t.split(df=t.join(dc=dc, col=sample), key=cond).items():
+        if verbose: print(c)
+        # Group by variable and aggregate; keep grouping key as a column
+        df_cond_agg = df_cond.groupby(by=var, as_index=False).agg(agg_dict)
+        df_cond_agg.columns = ['_'.join(col).strip('_') for col in df_cond_agg.columns]
+        for col in df_cond_agg.columns:
             if '_<lambda>' in col:
-                if any(isinstance(item, str) for item in df_cond_agg.iloc[0][col]): 
-                    ls = [] # Handling columns with str & other datatypes
-                    for s in df_cond_agg[col]: ls.append([s_ if isinstance(s_,str) else str(s_) for s_ in s])
-                    df_cond_agg[col] = [','.join(sorted(l)) for l in ls] # Sort list and join
-                else: df_cond_agg[col] = [sorted(s) for s in df_cond_agg[col]]
-        df_cond_agg.columns = df_cond_agg.columns.str.replace('_<lambda>', '', regex=True) # Remove '_<lambda>' in column names
-        df_cond_agg[cond]=c
-        df_cond_stat = pd.concat([df_cond_stat,df_cond_agg]).reset_index(drop=True)
+                if any(isinstance(item, str) for item in df_cond_agg.iloc[0][col]):
+                    ls = []
+                    for s in df_cond_agg[col]: ls.append([s_ if isinstance(s_, str) else str(s_) for s_ in s])
+                    df_cond_agg[col] = [','.join(sorted(l)) for l in ls]
+                else:
+                    df_cond_agg[col] = [sorted(s) for s in df_cond_agg[col]]
+        df_cond_agg.columns = df_cond_agg.columns.str.replace('_<lambda>', '', regex=True)
+        df_cond_agg[cond] = c
+        df_cond_stat = pd.concat([df_cond_stat, df_cond_agg]).reset_index(drop=True)
     
     # Fold change & p-value relative comparison group
-    print(f'Compute FC & pval relative to {cond_comp}:')
+    if verbose: print(f'Compute FC & pval relative to {cond_comp}:')
     df_stat = pd.DataFrame()
-    df_comp = df_cond_stat[df_cond_stat[cond]==cond_comp] # Isolate comparison group
-    df_other = df_cond_stat[df_cond_stat[cond]!=cond_comp] # From other groups
-    for v in set(df_other[var].tolist()): # iterate through variables
-        print(f'{v}')
-        df_other_edit = df_other[df_other[var]==v]
-        df_comp_edit = df_comp[df_comp[var]==v]
-        df_other_edit[f'{count}_mean_compare'] = [df_comp_edit.iloc[0][f'{count}_mean']]*df_other_edit.shape[0]
-        df_other_edit[f'{count}+{psuedocount}_mean_compare'] = [df_comp_edit.iloc[0][f'{count}+{psuedocount}_mean']]*df_other_edit.shape[0]
-        df_other_edit['FPM_mean_compare'] = [df_comp_edit.iloc[0]['FPM_mean']]*df_other_edit.shape[0]
-        df_other_edit['FC'] = df_other_edit['FPM_mean']/df_comp_edit.iloc[0]['FPM_mean']
-        ttests = [ttest_ind(list(other_fraction_ls),list(df_comp_edit.iloc[0]['FPM_list'])) 
-                                 for other_fraction_ls in df_other_edit['FPM_list']]
+    df_comp = df_cond_stat[df_cond_stat[cond] == cond_comp]
+    df_other = df_cond_stat[df_cond_stat[cond] != cond_comp]
+    # Only evaluate variables present in both the comparison group and the other groups
+    vars_in_both = sorted(set(df_other[var].tolist()).intersection(set(df_comp[var].tolist())))
+    for v in vars_in_both:
+        if verbose: print(f'{v}')
+        df_other_edit = df_other[df_other[var] == v].copy()
+        df_comp_edit = df_comp[df_comp[var] == v]
+
+        # If the comparison group has no rows for this variable, skip
+        if df_comp_edit.empty:
+            continue
+
+        # Carry through comparison means for transparency
+        df_other_edit[f'{count}_mean_compare'] = [df_comp_edit.iloc[0][f'{count}_mean']] * df_other_edit.shape[0]
+        df_other_edit[f'{count}+{pseudocount}_mean_compare'] = [df_comp_edit.iloc[0][f'{count}+{pseudocount}_mean']] * df_other_edit.shape[0]
+        df_other_edit['FPM_pc_mean_compare'] = [df_comp_edit.iloc[0]['FPM_pc_mean']] * df_other_edit.shape[0]
+        df_other_edit['FPM_mean_compare'] = [df_comp_edit.iloc[0]['FPM_mean']] * df_other_edit.shape[0]
+
+        # Robust FC using pseudocount-adjusted FPM; guard against zero denominator
+        _den = float(df_comp_edit.iloc[0]['FPM_pc_mean'])
+        if _den <= 0:
+            _den = np.finfo(float).eps
+        df_other_edit['FC'] = df_other_edit['FPM_pc_mean'] / _den
+
+        # Two-sample t-tests using the adjusted per-sample values
+        ttests = [
+            ttest_ind(list(other_vals), list(df_comp_edit.iloc[0]['FPM_pc_list']), alternative=alternative)
+            for other_vals in df_other_edit['FPM_pc_list']
+        ]
         df_other_edit['pval'] = [ttest[1] for ttest in ttests]
         df_other_edit['tstat'] = [ttest[0] for ttest in ttests]
-        df_stat = pd.concat([df_stat,df_other_edit])
-    df_stat['compare'] = [cond_comp]*df_stat.shape[0]
-    df_stat = df_stat.sort_values(by=[cond,var]).reset_index(drop=True)
+        df_stat = pd.concat([df_stat, df_other_edit])
+    df_stat['compare'] = [cond_comp] * df_stat.shape[0]
+    df_stat = df_stat.sort_values(by=[cond, var]).reset_index(drop=True)
 
     # Save & return statistics dataframe
     if dir is not None and file is not None:
-        io.save(dir=dir,file=file,obj=df_stat,id=True) 
+        io.save(dir=dir,file=file,obj=df_stat) 
+    return df_stat
+
+def odds_ratio(df: pd.DataFrame | str, cond: str, cond_comp: str, 
+            var: str, var_comp: str, count: str, pseudocount: int=1,
+            alternative: str='two-sided', dir:str=None, file:str=None, verbose:bool=False) -> pd.DataFrame:
+    ''' 
+    odds_ratio(): computes odds ratios relative to a specified condition & variable (e.g., control & null)
+
+    Parameters:
+    df (dataframe | str): tidy dataframe (or file path)
+    cond (str): condition column name
+    cond_comp (str): condition for comparison group
+    var (str): variable column name for odds ratio computation (e.g., event1, event2, ..., null)
+    var_comp (str): variable name for comparison (e.g., null)
+    count (str): count column name
+    pseudocount (int, optional): pseudocount to avoid /0 (Default: 1)
+    alternative (str, optional): 'two-sided', 'less', or 'greater' (Default: 'two-sided')
+    dir (str, optional): save directory
+    file (str, optional): save file
+    verbose (bool, optional): print progress to console (Default: False)
+    '''
+    # Get dataframe from file path if needed
+    if type(df)==str:
+        df = io.get(pt=df)
+
+    # Get metadata
+    meta_cols = list(df.columns)
+    meta_cols.remove(count)
+
+    if verbose: print(f'Combine counts across samples in the same condition & add pseudocount ({pseudocount}) to avoid /0')
+    # Define aggregation dictionary dynamically
+    agg_dict = {}
+    for col in meta_cols: # Include metadata columns as sets
+        agg_dict[col] = lambda x: set(x)
+    # Include count sum
+    agg_dict[count] = 'sum'
+
+    # Group by condition and variable; aggregate; keep grouping key as a column
+    df = df.groupby(by=[cond, var], as_index=False).agg(agg_dict)
+    for col in meta_cols:
+        if any(isinstance(item, str) for item in df.iloc[0][col]):
+            ls = []
+            for s in df[col]: ls.append([s_ if isinstance(s_, str) else str(s_) for s_ in s])
+            df[col] = [','.join(sorted(l)) for l in ls]
+        else:
+            df[col] = [sorted(s) for s in df[col]]
+    
+    # Add pseudocount to counts
+    df[f'{count}+{pseudocount}'] = df[count] + pseudocount
+
+    if verbose: print(f'Split comparison groups: condition from ({var_comp}) from other variables')
+    # Get comparison variable count and count+pseudocount for comparison condition
+    df_cond_comp = df[df[cond] == cond_comp].reset_index(drop=True)
+    df_cond_comp_var_comp = df_cond_comp[df_cond_comp[var] == var_comp]
+    if len(df_cond_comp_var_comp) == 0:
+        raise ValueError(f'No data found for condition "{cond_comp}" and variable "{var_comp}". Cannot compute odds ratio.')
+    elif len(df_cond_comp_var_comp) > 1:
+        raise ValueError(f'Multiple entries found for condition "{cond_comp}" and variable "{var_comp}". Ensure unique entries for odds ratio computation.')
+    else:
+        cond_comp_var_comp_count = df_cond_comp_var_comp[count].values[0]
+        cond_comp_var_comp_count_pc = df_cond_comp_var_comp[f'{count}+{pseudocount}'].values[0]
+
+    # Remove comparison condition from main dataframe
+    df = df[df[cond] != cond_comp].reset_index(drop=True)
+
+    if verbose: print(f'Split dataframe by condition & compute odds ratio:')
+    # Iterate through conditions 
+    df_stat = pd.DataFrame()
+    for c in df[cond].unique():
+        
+        # Isolate condition comparison dataframe
+        df_cond = df[df[cond] == c].reset_index(drop=True)
+        df_cond_var_comp = df_cond[df_cond[var] == var_comp]
+        if len(df_cond_var_comp) == 0:
+            raise ValueError(f'No data found for condition "{c}" and variable "{var_comp}". Cannot compute odds ratio.')
+        elif len(df_cond_var_comp) > 1:
+            raise ValueError(f'Multiple entries found for condition "{c}" and variable "{var_comp}". Ensure unique entries for odds ratio computation.')
+        else:
+            cond_var_comp_count = df_cond_var_comp[count].values[0]
+            cond_var_comp_count_pc = df_cond_var_comp[f'{count}+{pseudocount}'].values[0]
+        
+        # Remove comparison variable from condition dataframe
+        df_cond = df_cond[df_cond[var] != var_comp].reset_index(drop=True)
+
+        # Include comparison counts for transparency
+        df_cond[f'{count}_compare_{var_comp}'] = [cond_var_comp_count] * df_cond.shape[0]
+        df_cond[f'{count}+{pseudocount}_compare_{var_comp}'] = [cond_var_comp_count_pc] * df_cond.shape[0]
+        df_cond[f'{count}_compare_{cond_comp}_{var_comp}'] = [cond_comp_var_comp_count] * df_cond.shape[0]
+        df_cond[f'{count}+{pseudocount}_compare_{cond_comp}_{var_comp}'] = [cond_comp_var_comp_count_pc] * df_cond.shape[0]
+        df_cond[f'compare_{cond}'] = [cond_comp] * df_cond.shape[0]
+        df_cond[f'compare_{var}'] = [var_comp] * df_cond.shape[0]
+
+        # Iterate through variables within condition; compute odds ratio & pval from fisher exact test
+        fe_or_ls = []
+        pval_ls = []
+
+        for v in df_cond[var].unique(): # Iterate through variables
+            # Isolate variable & variable comparison counts
+            cond_var_count_pc = df_cond[df_cond[var] == v][f'{count}+{pseudocount}'].values[0]
+            try:
+                cond_comp_var_count_pc = df_cond_comp[df_cond_comp[var] == v][f'{count}+{pseudocount}'].values[0]
+            except IndexError:
+                raise ValueError(f'No data found for condition "{cond_comp}" and variable "{v}". Cannot compute odds ratio.')
+            
+            # Compute odds ratio & fisher exact test
+            fe_or, pval = fisher_exact(table=[[cond_var_count_pc, cond_var_comp_count_pc], [cond_comp_var_count_pc, cond_comp_var_comp_count_pc]],
+                                        alternative=alternative)
+            fe_or_ls.append(fe_or)
+            pval_ls.append(pval)
+        
+        # Add results to condition dataframe
+        df_cond['fisher_exact_odds_ratio'] = fe_or_ls
+        df_cond['fisher_exact_pval'] = pval_ls
+        
+        # Append to statistics dataframe
+        df_stat = pd.concat([df_stat, df_cond]).reset_index(drop=True)
+    
+    # Save & return statistics dataframe
+    if dir is not None and file is not None:
+        io.save(dir=dir,file=file,obj=df_stat) 
     return df_stat

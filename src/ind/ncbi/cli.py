@@ -147,7 +147,7 @@ def add_subparser(subparsers: argparse._SubParsersAction, formatter_class: type[
     p_gf.set_defaults(func=_cmd_gene_fasta)
 
     # Help message for ind ncbi query/count -h block text by Myformatter(RichHelpformatter_class):
-    if any(["ind" in argv for argv in sys.argv]) and "ncbi" in sys.argv and any(["esearch" in sys.argv or "esummary" in sys.argv or "efetch" in sys.argv or "einfo" in sys.argv or "elink" in sys.argv or "espell" in sys.argv]) and ("--help" in sys.argv or "-h" in sys.argv):
+    if any(["ind" in argv for argv in sys.argv]) and "ncbi" in sys.argv and any(["esearch" in sys.argv, "esummary" in sys.argv, "efetch" in sys.argv, "einfo" in sys.argv, "elink" in sys.argv, "espell" in sys.argv]) and ("--help" in sys.argv or "-h" in sys.argv):
         if "esearch" in sys.argv:
             p_search.print_help()
         if "esummary" in sys.argv:
