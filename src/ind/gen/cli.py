@@ -262,22 +262,25 @@ def add_common_plot_dist_args(subparser):
     subparser.add_argument("--show", action="store_true", help="Show the plot in an interactive window", default=False)
     subparser.add_argument("--space_capitalize", action="store_true", help="Capitalize and space legend/label values", default=False)
 
-def add_common_plot_heat_args(subparser):
+def add_common_plot_heat_args(subparser, stat_parser=False):
     '''
     add_common_plot_heat_args(subparser): Add common arguments for heatmap graphs
     '''
     # Required arguments
-    subparser.add_argument("--df", help="Input dataframe file path", type=str, required=True)
+    if stat_parser == False:
+        subparser.add_argument("--df", help="Input dataframe file path", type=str, required=True)
 
     # Optional arguments
-    subparser.add_argument("--x", type=str, help="X-axis column name to pivot tidy-formatted dataframe into matrix format")
-    subparser.add_argument("--y", type=str, help="Y-axis column name to pivot tidy-formatted dataframe into matrix format")
-    subparser.add_argument("--vars", type=str, help="Variable column name to split tidy-formatted dataframe into a dictionary of pivoted dataframes")
-    subparser.add_argument("--vals", type=str, help="Value column name to populate pivoted dataframes")
-    subparser.add_argument("--vals_dims", type=parse_tuple_float, help="Value column limits formatted as 'vmin,vmax'")
+    if stat_parser == False:
+        subparser.add_argument("--x", type=str, help="X-axis column name to pivot tidy-formatted dataframe into matrix format")
+        subparser.add_argument("--y", type=str, help="Y-axis column name to pivot tidy-formatted dataframe into matrix format")
+        subparser.add_argument("--vars", type=str, help="Variable column name to split tidy-formatted dataframe into a dictionary of pivoted dataframes")
+        subparser.add_argument("--vals", type=str, help="Value column name to populate pivoted dataframes")
+        subparser.add_argument("--vals_dims", type=parse_tuple_float, help="Value column limits formatted as 'vmin,vmax'")
 
-    subparser.add_argument("--dir", type=str, help="Output directory path", default='./out')
-    subparser.add_argument("--file", type=str, help="Output filename", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_heat.png')
+    if stat_parser == False:
+        subparser.add_argument("--dir", type=str, help="Output directory path", default='./out')
+        subparser.add_argument("--file", type=str, help="Output filename", default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_plot_heat.png')
     subparser.add_argument("--edgecol", type=str, default="black", help="Color of cell edges")
     subparser.add_argument("--lw", type=int, default=1, help="Line width for cell borders")
 
@@ -286,6 +289,8 @@ def add_common_plot_heat_args(subparser):
     subparser.add_argument("--cmap", type=str, default="Reds", help="Matplotlib colormap to use for heatmap")
     subparser.add_argument("--sq", action="store_true", help="Use square aspect ratio for cells", default=False)
     subparser.add_argument("--cbar", action="store_true", help="Display colorbar", default=False)
+    if stat_parser == False:
+        subparser.add_argument("--cbar_label", type=str, default=argparse.SUPPRESS, help="Colorbar label")
     subparser.add_argument("--cbar_label_size", type=int, default=argparse.SUPPRESS, help="Font size for colorbar label")
     subparser.add_argument("--cbar_label_weight", type=str, default="bold", help="Font weight for colorbar label (Default: bold)", choices=['bold', 'normal', 'heavy'])
     subparser.add_argument("--cbar_tick_size", type=int, default=argparse.SUPPRESS, help="Font size for colorbar ticks")
@@ -491,7 +496,7 @@ def add_subparser(subparsers, formatter_class=None):
     formatter_class (type, optional): The formatter class to use for the subparsers.
     """
     '''
-    edms.gen.plot:
+    ind.gen.plot:
     - scat(): creates scatter plot related graphs
     - cat(): creates categorical graphs
     - dist(): creates distribution graphs
@@ -553,7 +558,7 @@ def add_subparser(subparsers, formatter_class=None):
     parser_plot_type_vol.set_defaults(func=p.vol)
 
     '''
-    edms.gen.stat:
+    ind.gen.stat:
     - describe(): returns descriptive statistics for numerical columns in a DataFrame
     - difference(): computes the appropriate statistical test(s) and returns the p-value(s)
     - correlation(): returns a correlation matrix
@@ -648,11 +653,9 @@ def add_subparser(subparsers, formatter_class=None):
     parser_stat_odds_ratio.set_defaults(func=st.odds_ratio)
 
     '''
-    edms.gen.io:
+    ind.gen.io:
     - in_subs(): moves all files with a given suffix into subfolders named after the files (excluding the suffix).
     - out_subs(): recursively moves all files from subdirectories into the parent directory and delete the emptied subdirectories.
-    - create_sh(): creates a shell script with SLURM job submission parameters for Harvard FASRC cluster.
-    - split_R1_R2(): split paired reads into new R1 and R2 subdirectories at the parent directory
     - excel_csvs(): exports excel file to .csv files in specified directory  
     '''
     parser_io = subparsers.add_parser("io", help="Input/Output", formatter_class=formatter_class)
@@ -661,28 +664,15 @@ def add_subparser(subparsers, formatter_class=None):
     # Create subparsers for commands
     parser_io_in_subs = subparsers_io.add_parser("in_subs", help="*No FASRC* Moves all files with a given suffix into subfolders named after the files (excluding the suffix)", description="*No FASRC* Moves all files with a given suffix into subfolders named after the files (excluding the suffix)", formatter_class=formatter_class)
     parser_io_out_subs = subparsers_io.add_parser("out_subs", help="*No FASRC* Delete subdirectories and move their files to the parent directory", description="*No FASRC* Delete subdirectories and move their files to the parent directory", formatter_class=formatter_class)
-    parser_io_create_sh = subparsers_io.add_parser("create_sh", help='Generate SLURM shell script for Harvard FASRC cluster.', description='Generate SLURM shell script for Harvard FASRC cluster.', formatter_class=formatter_class)
-    parser_io_split_R1_R2 = subparsers_io.add_parser("split_R1_R2", help='*No FASRC* Split paired reads into new R1 and R2 subdirectories at the parent directory.', description='*No FASRC* Split paired reads into new R1 and R2 subdirectories at the parent directory.', formatter_class=formatter_class)
     parser_io_excel_csvs = subparsers_io.add_parser("excel_csvs", help='Exports excel file to .csv files in specified directory.', description='Exports excel file to .csv files in specified directory.', formatter_class=formatter_class)
 
     # Add common arguments
-    for parser_io_common in [parser_io_in_subs,parser_io_out_subs,parser_io_split_R1_R2]:
+    for parser_io_common in [parser_io_in_subs,parser_io_out_subs]:
         parser_io_common.add_argument("--dir", help="Path to parent directory", type=str, default='.')
     
     # in_subs() arguments
     parser_io_in_subs.add_argument("--suf", help="File suffix (e.g., '.txt', '.csv') to filter files.", type=str, required=True) 
     
-    # create_sh(): creates a shell script with SLURM job submission parameters for Harvard FASRC cluster.
-    parser_io_create_sh.add_argument('--dir', type=str, help='Directory to save the shell script.', default='.')
-    parser_io_create_sh.add_argument('--file', type=str, help='Name of the shell script file to create.',default=f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.sh')
-    parser_io_create_sh.add_argument('--cores', type=int, default=1, help='Number of CPU cores to request.')
-    parser_io_create_sh.add_argument('--partition', type=str, default='serial_requeue', help='SLURM partition to use.')
-    parser_io_create_sh.add_argument('--time', type=str, default='0-00:10', help='Job run time in D-HH:MM format.')
-    parser_io_create_sh.add_argument('--mem', type=int, default=1000, help='Memory in MB.')
-    parser_io_create_sh.add_argument('--email', type=str, default=None, help='Notification email address.')
-    parser_io_create_sh.add_argument('--python', type=str, default='python/3.12.5-fasrc01', help='Python module to load.')
-    parser_io_create_sh.add_argument('--env', type=str, default='edms', help='Conda environment to activate.')
-
     # excel_csvs(): exports excel file to .csv files in specified directory 
     parser_io_excel_csvs.add_argument('--pt', type=str, help='Excel file path', required=True)
     parser_io_excel_csvs.add_argument('--dir', type=str, help='Output directory path (Default: same directory as excel file name).',default='')
@@ -690,12 +680,10 @@ def add_subparser(subparsers, formatter_class=None):
     # Call command functions
     parser_io_in_subs.set_defaults(func=io.in_subs)
     parser_io_out_subs.set_defaults(func=io.out_subs)
-    parser_io_create_sh.set_defaults(func=io.create_sh)
-    parser_io_split_R1_R2.set_defaults(func=io.split_R1_R2)
     parser_io_excel_csvs.set_defaults(func=io.excel_csvs)
 
     '''
-    edms.gen.com:
+    ind.gen.com:
     - create_export_var(): create a persistent environment variable by adding it to the user's shell config.
     - view_export_vars(): View the current export variables in the user's shell config.
     '''
@@ -719,7 +707,7 @@ def add_subparser(subparsers, formatter_class=None):
     parser_com_view_export_vars.set_defaults(func=com.view_export_vars)
 
     '''
-    edms.gen.html:
+    ind.gen.html:
     - make_html_index(): Create an index HTML that links to other HTML files in `dir`.
         - Uses <title> from each HTML file if available; falls back to stem/filename.
         - Makes titles into buttons.

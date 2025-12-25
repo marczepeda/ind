@@ -59,6 +59,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
+"ind.resources" = ["icon/*"]
 "ind.scripts" = ["*.sh"]
 
 [tool.setuptools_scm]

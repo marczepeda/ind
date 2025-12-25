@@ -52,8 +52,7 @@ import importlib.resources as pkg_resources
 
 from ..utils import mkdir
 from . import io
-import edms.resources.molstar as molstar_pkg
-import edms.resources.icon as icon_pkg
+import ind.resources.icon as icon_pkg
 
 # HTML Tooltips
 class SafeHTMLTooltip(mpld3.plugins.PluginBase):
@@ -362,6 +361,8 @@ def save_fig(file: str | None, dir: str | None, fig=None, dpi: int = 0, icon: st
         if ext == 'html':
             sub_dir = os.path.join(dir,file[:-5])
             mkdir(sub_dir)
+            with pkg_resources.path(icon_pkg, f"{icon}.svg") as svg_path:
+                    shutil.copy(svg_path, Path(sub_dir) / f"{icon}.svg")
             export_mpld3_html(fig=fig, dir=dir, file=file, icon=icon)
             
         elif ext == 'json':
