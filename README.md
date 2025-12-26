@@ -1,5 +1,5 @@
 # Investigational New Drug (IND) Application
-Like DrugBank, but free. Only accessible through CLI for now...
+Command line access to pharmaceutical and biotechnology industry data.
 ## Command Line Interface
 ```shell
 ind -h # or ind <TAB>

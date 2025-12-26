@@ -169,7 +169,6 @@ def _search_drug_shortages(company: str, limit: int = 1000) -> List[Dict[str, An
             return []
         raise
 
-
 # Flatten drug shortages records for CSV/table
 def _flatten_drug_shortages(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
@@ -443,7 +442,6 @@ def _search_drug_labels(company: str, limit: int = 1000) -> List[Dict[str, Any]]
             return []
         raise
 
-
 def _flatten_drug_labels(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
 
@@ -473,17 +471,318 @@ def _flatten_drug_labels(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
     return rows
 
+# Retrieve device adverse event (MDR) reports for a company
+def _search_device_adverse_events(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+
+    # Device event records commonly use top-level manufacturer_name; openfda.manufacturer_name can also exist.
+    query = f'manufacturer_name:"{q_company}" OR openfda.manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/device/event.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+# Flatten device adverse event (MDR) records for CSV/table
+def _flatten_device_adverse_events(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+
+    def join_list(x) -> str:
+        if isinstance(x, list):
+            return "; ".join([str(v) for v in x if v is not None and str(v) != ""])
+        return "" if x is None else str(x)
+
+    # de-dupe while preserving order
+    def dedupe(xs: List[str]) -> str:
+        out: List[str] = []
+        seen = set()
+        for x in xs:
+            if not x or x in seen:
+                continue
+            seen.add(x)
+            out.append(x)
+        return "; ".join(out)
+
+    for r in records:
+        devs = r.get("device") or []
+        if not isinstance(devs, list):
+            devs = []
+
+        brand_names: List[str] = []
+        generic_names: List[str] = []
+        product_codes: List[str] = []
+        for d in devs:
+            if not isinstance(d, dict):
+                continue
+            bn = d.get("brand_name")
+            if bn:
+                brand_names.append(str(bn))
+            gn = d.get("generic_name")
+            if gn:
+                generic_names.append(str(gn))
+            pc = d.get("device_report_product_code") or d.get("product_code")
+            if pc:
+                product_codes.append(str(pc))
+
+        rows.append({
+            "mdr_report_key": r.get("mdr_report_key") or "",
+            "report_number": r.get("report_number") or "",
+            "date_received": r.get("date_received") or "",
+            "date_of_event": r.get("date_of_event") or "",
+            "report_date": r.get("report_date") or "",
+            "event_type": r.get("event_type") or "",
+            "manufacturer_name": r.get("manufacturer_name") or "",
+            "brand_name": dedupe(brand_names),
+            "generic_name": dedupe(generic_names),
+            "product_code": dedupe(product_codes),
+            "product_problem_flag": r.get("product_problem_flag") or "",
+            "adverse_event_flag": r.get("adverse_event_flag") or "",
+            "product_problem_text": join_list(r.get("product_problem_text")),
+            "patient_problem_text": join_list(r.get("patient_problem_text")),
+        })
+
+    for row in rows:
+        for k, v in list(row.items()):
+            if v is None:
+                row[k] = ""
+
+    return rows
+
+# Retrieve device enforcement (recall) reports for a company
+def _search_device_enforcements(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+
+    # Device enforcement records commonly use recalling_firm; also sometimes manufacturer_name.
+    query = f'recalling_firm:"{q_company}" OR manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/device/enforcement.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+# Flatten device enforcement (recall) records for CSV/table
+def _flatten_device_enforcements(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+
+    keep = [
+        "recall_number",
+        "recalling_firm",
+        "product_description",
+        "reason_for_recall",
+        "classification",
+        "status",
+        "report_date",
+        "recall_initiation_date",
+        "center_classification_date",
+        "termination_date",
+        "event_id",
+        "product_code",
+        "product_type",
+        "city",
+        "state",
+        "country",
+        "distribution_pattern",
+        "code_info",
+        "voluntary_mandated",
+    ]
+
+    for r in records:
+        row: Dict[str, Any] = {}
+        for k in keep:
+            v = r.get(k)
+            row[k] = "" if v is None else v
+        rows.append(row)
+
+    return rows
+
+# Retrieve device recall reports for a company
+def _search_device_recalls(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+
+    # Recall records commonly use recalling_firm; sometimes manufacturer_name too.
+    query = f'recalling_firm:"{q_company}" OR manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/device/recall.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+# Flatten device recall records for CSV/table
+def _flatten_device_recalls(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+
+    keep = [
+        "recall_number",
+        "recalling_firm",
+        "product_description",
+        "reason_for_recall",
+        "status",
+        "report_date",
+        "recall_initiation_date",
+        "termination_date",
+        "event_id",
+        "product_code",
+        "product_type",
+        "city",
+        "state",
+        "country",
+        "distribution_pattern",
+        "code_info",
+        "voluntary_mandated",
+    ]
+
+    for r in records:
+        row: Dict[str, Any] = {}
+        for k in keep:
+            v = r.get(k)
+            row[k] = "" if v is None else v
+        rows.append(row)
+
+    return rows
+
+# Retrieve device registration & listing records for a company
+def _search_device_registrationlisting(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+
+    # Try multiple common match points for the company name
+    query = (
+        f'registration.owner_operator.firm_name:"{q_company}" '
+        f'OR registration.name:"{q_company}" '
+        f'OR registration.us_agent.business_name:"{q_company}" '
+        f'OR registration.us_agent.name:"{q_company}"'
+    )
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/device/registrationlisting.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+
+def _flatten_device_registrationlisting(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+
+    def join_list(x) -> str:
+        if isinstance(x, list):
+            return "; ".join([str(v) for v in x if v is not None and str(v) != ""])
+        return "" if x is None else str(x)
+
+    def first(x, default: str = "") -> str:
+        if isinstance(x, list):
+            return str(x[0]) if x else default
+        return default if x is None else str(x)
+
+    def dedupe(xs: List[str]) -> str:
+        out: List[str] = []
+        seen = set()
+        for x in xs:
+            if not x or x in seen:
+                continue
+            seen.add(x)
+            out.append(x)
+        return "; ".join(out)
+
+    for r in records:
+        reg = r.get("registration") or {}
+        owner = reg.get("owner_operator") or {}
+        contact = owner.get("contact_address") or {}
+        us_agent = reg.get("us_agent") or {}
+
+        products = r.get("products") or []
+        if not isinstance(products, list):
+            products = []
+
+        product_codes: List[str] = []
+        k_numbers: List[str] = []
+        pma_numbers: List[str] = []
+        exempt_flags: List[str] = []
+
+        for p in products:
+            if not isinstance(p, dict):
+                continue
+            pc = p.get("product_code")
+            if pc:
+                product_codes.append(str(pc))
+            kn = p.get("k_number")
+            if kn:
+                k_numbers.append(str(kn))
+            pn = p.get("pma_number")
+            if pn:
+                pma_numbers.append(str(pn))
+            ex = p.get("exempt")
+            if ex is not None and str(ex) != "":
+                exempt_flags.append(str(ex))
+
+        rows.append({
+            "registration_number": reg.get("registration_number") or "",
+            "fei_number": reg.get("fei_number") or "",
+            "registration_status_code": reg.get("status_code") or "",
+            "initial_importer_flag": reg.get("initial_importer_flag") or "",
+            "reg_expiry_date_year": reg.get("reg_expiry_date_year") or "",
+            "facility_name": reg.get("name") or "",
+            "facility_city": reg.get("city") or "",
+            "facility_state_code": reg.get("state_code") or "",
+            "facility_iso_country_code": reg.get("iso_country_code") or "",
+
+            "owner_operator_number": owner.get("owner_operator_number") or "",
+            "owner_operator_firm_name": owner.get("firm_name") or "",
+            "owner_operator_city": contact.get("city") or "",
+            "owner_operator_state_code": contact.get("state_code") or "",
+            "owner_operator_iso_country_code": contact.get("iso_country_code") or "",
+
+            "us_agent_name": us_agent.get("name") or "",
+            "us_agent_business_name": us_agent.get("business_name") or "",
+            "us_agent_city": us_agent.get("city") or "",
+            "us_agent_state_code": us_agent.get("state_code") or "",
+            "us_agent_iso_country_code": us_agent.get("iso_country_code") or "",
+
+            "proprietary_name": join_list(r.get("proprietary_name")),
+            "establishment_type": join_list(r.get("establishment_type")),
+
+            "product_code": dedupe(product_codes),
+            "k_number": dedupe(k_numbers),
+            "pma_number": dedupe(pma_numbers),
+            "exempt": dedupe(exempt_flags),
+
+            # openfda fields sometimes present at top-level
+            "device_class": first(r.get("device_class")),
+            "medical_specialty_description": first(r.get("medical_specialty_description")),
+            "regulation_number": join_list(r.get("regulation_number")),
+        })
+
+    for row in rows:
+        for k, v in list(row.items()):
+            if v is None:
+                row[k] = ""
+
+    return rows
+
 @dataclass
 class CompanyOpenFDAIntel:
     company: str
     drugs_approved: List[Dict[str, Any]]
-    devices_510k: List[Dict[str, Any]]
-    devices_pma: List[Dict[str, Any]]
     ndc_directory: List[Dict[str, Any]]
     drug_adverse_events: List[Dict[str, Any]]
     drug_enforcements: List[Dict[str, Any]]
     drug_labels: List[Dict[str, Any]]
     drug_shortages: List[Dict[str, Any]]
+    devices_510k: List[Dict[str, Any]]
+    devices_pma: List[Dict[str, Any]]
+    device_adverse_events: List[Dict[str, Any]]
+    device_enforcements: List[Dict[str, Any]]
+    device_recalls: List[Dict[str, Any]]
+    device_registrationlisting: List[Dict[str, Any]]
 
     def dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -520,6 +819,18 @@ def build_company_intel(company: str, *, max_records: int = 1000) -> CompanyOpen
     dev_510k = _flatten_510k(dev_510k_records)
     dev_pma = _flatten_pma(dev_pma_records)
 
+    device_event_records = _search_device_adverse_events(company, limit=max_records)
+    device_adverse_events = _flatten_device_adverse_events(device_event_records)
+
+    dev_enf_records = _search_device_enforcements(company, limit=max_records)
+    device_enforcements = _flatten_device_enforcements(dev_enf_records)
+
+    dev_recall_records = _search_device_recalls(company, limit=max_records)
+    device_recalls = _flatten_device_recalls(dev_recall_records)
+
+    reglist_records = _search_device_registrationlisting(company, limit=max_records)
+    device_registrationlisting = _flatten_device_registrationlisting(reglist_records)
+
     return CompanyOpenFDAIntel(
         company=company,
         drugs_approved=drugs,
@@ -530,4 +841,8 @@ def build_company_intel(company: str, *, max_records: int = 1000) -> CompanyOpen
         drug_enforcements=drug_enforcements,
         drug_labels=drug_labels,
         drug_shortages=drug_shortages,
+        device_adverse_events=device_adverse_events,
+        device_enforcements=device_enforcements,
+        device_recalls=device_recalls,
+        device_registrationlisting=device_registrationlisting,
     )

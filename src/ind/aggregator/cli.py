@@ -52,25 +52,6 @@ def _write_drugs_csv(drugs: list[dict], output_csv: Path) -> None:
     ]
     _write_csv_rows(drugs, output_csv, preferred)
 
-
-def _write_devices_csv(devices: list[dict], output_csv: Path) -> None:
-    preferred = [
-        "device_type",
-        "k_number",
-        "pma_number",
-        "device_name",
-        "trade_name",
-        "generic_name",
-        "applicant",
-        "manufacturer_name",
-        "product_code",
-        "advisory_committee",
-        "clearance_type",
-        "decision_code",
-        "decision_date",
-    ]
-    _write_csv_rows(devices, output_csv, preferred)
-
 def _write_ndc_csv(ndc_rows: list[dict], output_csv: Path) -> None:
     preferred = [
         "product_ndc",
@@ -154,6 +135,103 @@ def _write_shortages_csv(rows: list[dict], output_csv: Path) -> None:
     ]
     _write_csv_rows(rows, output_csv, preferred)
 
+def _write_devices_csv(devices: list[dict], output_csv: Path) -> None:
+    preferred = [
+        "device_type",
+        "k_number",
+        "pma_number",
+        "device_name",
+        "trade_name",
+        "generic_name",
+        "applicant",
+        "manufacturer_name",
+        "product_code",
+        "advisory_committee",
+        "clearance_type",
+        "decision_code",
+        "decision_date",
+    ]
+    _write_csv_rows(devices, output_csv, preferred)
+
+def _write_device_events_csv(rows: list[dict], output_csv: Path) -> None:
+    preferred = [
+        "mdr_report_key",
+        "report_number",
+        "date_received",
+        "date_of_event",
+        "report_date",
+        "event_type",
+        "manufacturer_name",
+        "brand_name",
+        "generic_name",
+        "product_code",
+        "product_problem_flag",
+        "adverse_event_flag",
+        "product_problem_text",
+        "patient_problem_text",
+    ]
+    _write_csv_rows(rows, output_csv, preferred)
+
+def _write_device_enforcements_csv(rows: list[dict], output_csv: Path) -> None:
+        preferred = [
+            "recall_number",
+            "classification",
+            "status",
+            "report_date",
+            "recall_initiation_date",
+            "center_classification_date",
+            "termination_date",
+            "recalling_firm",
+            "product_description",
+            "reason_for_recall",
+            "product_code",
+            "product_type",
+            "distribution_pattern",
+            "code_info",
+            "city",
+            "state",
+            "country",
+            "voluntary_mandated",
+            "event_id",
+        ]
+        _write_csv_rows(rows, output_csv, preferred)
+
+def _write_device_recalls_csv(rows: list[dict], output_csv: Path) -> None:
+    preferred = [
+        "recall_number",
+        "status",
+        "report_date",
+        "recall_initiation_date",
+        "termination_date",
+        "recalling_firm",
+        "product_description",
+        "reason_for_recall",
+        "product_code",
+        "product_type",
+        "distribution_pattern",
+        "code_info",
+        "city",
+        "state",
+        "country",
+        "voluntary_mandated",
+        "event_id",
+    ]
+    _write_csv_rows(rows, output_csv, preferred)
+
+def _write_device_registrationlisting_csv(rows: list[dict], output_csv: Path) -> None:
+    preferred = [
+        "registration_number","fei_number","registration_status_code",
+        "initial_importer_flag","reg_expiry_date_year",
+        "facility_name","facility_city","facility_state_code","facility_iso_country_code",
+        "owner_operator_number","owner_operator_firm_name",
+        "owner_operator_city","owner_operator_state_code","owner_operator_iso_country_code",
+        "us_agent_name","us_agent_business_name","us_agent_city","us_agent_state_code","us_agent_iso_country_code",
+        "establishment_type","proprietary_name",
+        "product_code","k_number","pma_number","exempt",
+        "device_class","medical_specialty_description","regulation_number",
+    ]
+    _write_csv_rows(rows, output_csv, preferred)
+
 def _render_html(
     data: dict,
     icon_href: str,
@@ -163,8 +241,12 @@ def _render_html(
     show_drug_adverse_events: bool = False,
     show_drug_enforcements: bool = False,
     show_drug_labels: bool = False,
-    show_device_approved: bool = False,
     show_drug_shortages: bool = False,
+    show_device_approved: bool = False,
+    show_device_adverse_events: bool = False,
+    show_device_enforcements: bool = False,
+    show_device_recalls: bool = False,
+    show_device_registrationlisting: bool = False,
 ) -> str:
     # Minimal standalone HTML (no server). Style kept compact.
     def esc(s):
@@ -318,6 +400,96 @@ def _render_html(
     devices_rows = "\n".join(devices_rows_510k + devices_rows_pma)
     if not devices_rows:
         devices_rows = "<tr><td colspan=13>(none)</td></tr>"
+
+    device_event_rows = "\n".join(
+        f"<tr>"
+        f"<td data-col='mdr_report_key'>{esc(str(d.get('mdr_report_key','')))}</td>"
+        f"<td data-col='report_number'>{esc(str(d.get('report_number','')))}</td>"
+        f"<td data-col='date_received'>{esc(str(d.get('date_received','')))}</td>"
+        f"<td data-col='date_of_event'>{esc(str(d.get('date_of_event','')))}</td>"
+        f"<td data-col='report_date'>{esc(str(d.get('report_date','')))}</td>"
+        f"<td data-col='event_type'>{esc(str(d.get('event_type','')))}</td>"
+        f"<td data-col='manufacturer_name'>{esc(str(d.get('manufacturer_name','')))}</td>"
+        f"<td data-col='brand_name'>{esc(str(d.get('brand_name','')))}</td>"
+        f"<td data-col='generic_name'>{esc(str(d.get('generic_name','')))}</td>"
+        f"<td data-col='product_code'>{esc(str(d.get('product_code','')))}</td>"
+        f"<td data-col='product_problem_flag'>{esc(str(d.get('product_problem_flag','')))}</td>"
+        f"<td data-col='adverse_event_flag'>{esc(str(d.get('adverse_event_flag','')))}</td>"
+        f"<td data-col='product_problem_text'>{esc(str(d.get('product_problem_text','')))}</td>"
+        f"<td data-col='patient_problem_text'>{esc(str(d.get('patient_problem_text','')))}</td>"
+        f"</tr>"
+        for d in (data.get("device_adverse_events") or [])
+    ) or "<tr><td colspan=14>(none)</td></tr>"
+
+    device_enforcement_rows = "\n".join(
+        f"<tr>"
+        f"<td data-col='recall_number'>{esc(str(d.get('recall_number','')))}</td>"
+        f"<td data-col='classification'>{esc(str(d.get('classification','')))}</td>"
+        f"<td data-col='status'>{esc(str(d.get('status','')))}</td>"
+        f"<td data-col='report_date'>{esc(str(d.get('report_date','')))}</td>"
+        f"<td data-col='recall_initiation_date'>{esc(str(d.get('recall_initiation_date','')))}</td>"
+        f"<td data-col='center_classification_date'>{esc(str(d.get('center_classification_date','')))}</td>"
+        f"<td data-col='termination_date'>{esc(str(d.get('termination_date','')))}</td>"
+        f"<td data-col='recalling_firm'>{esc(str(d.get('recalling_firm','')))}</td>"
+        f"<td data-col='product_description'>{esc(str(d.get('product_description','')))}</td>"
+        f"<td data-col='reason_for_recall'>{esc(str(d.get('reason_for_recall','')))}</td>"
+        f"<td data-col='product_code'>{esc(str(d.get('product_code','')))}</td>"
+        f"<td data-col='product_type'>{esc(str(d.get('product_type','')))}</td>"
+        f"<td data-col='distribution_pattern'>{esc(str(d.get('distribution_pattern','')))}</td>"
+        f"<td data-col='code_info'>{esc(str(d.get('code_info','')))}</td>"
+        f"<td data-col='city'>{esc(str(d.get('city','')))}</td>"
+        f"<td data-col='state'>{esc(str(d.get('state','')))}</td>"
+        f"<td data-col='country'>{esc(str(d.get('country','')))}</td>"
+        f"<td data-col='voluntary_mandated'>{esc(str(d.get('voluntary_mandated','')))}</td>"
+        f"<td data-col='event_id'>{esc(str(d.get('event_id','')))}</td>"
+        f"</tr>"
+        for d in (data.get("device_enforcements") or [])
+    ) or "<tr><td colspan=19>(none)</td></tr>"
+
+    device_recall_rows = "\n".join(
+        f"<tr>"
+        f"<td data-col='recall_number'>{esc(str(d.get('recall_number','')))}</td>"
+        f"<td data-col='status'>{esc(str(d.get('status','')))}</td>"
+        f"<td data-col='report_date'>{esc(str(d.get('report_date','')))}</td>"
+        f"<td data-col='recall_initiation_date'>{esc(str(d.get('recall_initiation_date','')))}</td>"
+        f"<td data-col='termination_date'>{esc(str(d.get('termination_date','')))}</td>"
+        f"<td data-col='recalling_firm'>{esc(str(d.get('recalling_firm','')))}</td>"
+        f"<td data-col='product_description'>{esc(str(d.get('product_description','')))}</td>"
+        f"<td data-col='reason_for_recall'>{esc(str(d.get('reason_for_recall','')))}</td>"
+        f"<td data-col='product_code'>{esc(str(d.get('product_code','')))}</td>"
+        f"<td data-col='product_type'>{esc(str(d.get('product_type','')))}</td>"
+        f"<td data-col='distribution_pattern'>{esc(str(d.get('distribution_pattern','')))}</td>"
+        f"<td data-col='code_info'>{esc(str(d.get('code_info','')))}</td>"
+        f"<td data-col='city'>{esc(str(d.get('city','')))}</td>"
+        f"<td data-col='state'>{esc(str(d.get('state','')))}</td>"
+        f"<td data-col='country'>{esc(str(d.get('country','')))}</td>"
+        f"<td data-col='voluntary_mandated'>{esc(str(d.get('voluntary_mandated','')))}</td>"
+        f"<td data-col='event_id'>{esc(str(d.get('event_id','')))}</td>"
+        f"</tr>"
+        for d in (data.get("device_recalls") or [])
+    ) or "<tr><td colspan=17>(none)</td></tr>"
+
+    device_reglist_rows = "\n".join(
+        f"<tr>"
+        f"<td data-col='registration_number'>{esc(str(d.get('registration_number','')))}</td>"
+        f"<td data-col='fei_number'>{esc(str(d.get('fei_number','')))}</td>"
+        f"<td data-col='registration_status_code'>{esc(str(d.get('registration_status_code','')))}</td>"
+        f"<td data-col='facility_name'>{esc(str(d.get('facility_name','')))}</td>"
+        f"<td data-col='facility_city'>{esc(str(d.get('facility_city','')))}</td>"
+        f"<td data-col='facility_state_code'>{esc(str(d.get('facility_state_code','')))}</td>"
+        f"<td data-col='facility_iso_country_code'>{esc(str(d.get('facility_iso_country_code','')))}</td>"
+        f"<td data-col='owner_operator_number'>{esc(str(d.get('owner_operator_number','')))}</td>"
+        f"<td data-col='owner_operator_firm_name'>{esc(str(d.get('owner_operator_firm_name','')))}</td>"
+        f"<td data-col='establishment_type'>{esc(str(d.get('establishment_type','')))}</td>"
+        f"<td data-col='proprietary_name'>{esc(str(d.get('proprietary_name','')))}</td>"
+        f"<td data-col='product_code'>{esc(str(d.get('product_code','')))}</td>"
+        f"<td data-col='k_number'>{esc(str(d.get('k_number','')))}</td>"
+        f"<td data-col='pma_number'>{esc(str(d.get('pma_number','')))}</td>"
+        f"<td data-col='device_class'>{esc(str(d.get('device_class','')))}</td>"
+        f"<td data-col='regulation_number'>{esc(str(d.get('regulation_number','')))}</td>"
+        f"</tr>"
+        for d in (data.get("device_registrationlisting") or [])
+    ) or "<tr><td colspan=16>(none)</td></tr>"
 
     company_esc = esc(data.get('company', ''))
 
@@ -578,6 +750,198 @@ def _render_html(
   </div>
 """
 
+    device_event_card = """
+  <div class="card">
+    <h3 class="title">openFDA: Device Adverse Events (MDR)</h3>
+    <table id="device-events-table">
+      <thead>
+        <tr>
+          <th data-sort="mdr_report_key" title="Click to sort">MDR Key</th>
+          <th data-sort="report_number" title="Click to sort">Report #</th>
+          <th data-sort="date_received" title="Click to sort">Date Received</th>
+          <th data-sort="date_of_event" title="Click to sort">Date of Event</th>
+          <th data-sort="report_date" title="Click to sort">Report Date</th>
+          <th data-sort="event_type" title="Click to sort">Event Type</th>
+          <th data-sort="manufacturer_name" title="Click to sort">Manufacturer</th>
+          <th data-sort="brand_name" title="Click to sort">Brand</th>
+          <th data-sort="generic_name" title="Click to sort">Generic</th>
+          <th data-sort="product_code" title="Click to sort">Product Code</th>
+          <th data-sort="product_problem_flag" title="Click to sort">Prod Prob Flag</th>
+          <th data-sort="adverse_event_flag" title="Click to sort">AE Flag</th>
+          <th data-sort="product_problem_text" title="Click to sort">Product Problem</th>
+          <th data-sort="patient_problem_text" title="Click to sort">Patient Problem</th>
+        </tr>
+        <tr class="filters">
+          <th><select data-filter="mdr_report_key"><option value="">All</option></select></th>
+          <th><select data-filter="report_number"><option value="">All</option></select></th>
+          <th><select data-filter="date_received"><option value="">All</option></select></th>
+          <th><select data-filter="date_of_event"><option value="">All</option></select></th>
+          <th><select data-filter="report_date"><option value="">All</option></select></th>
+          <th><select data-filter="event_type"><option value="">All</option></select></th>
+          <th><select data-filter="manufacturer_name"><option value="">All</option></select></th>
+          <th><select data-filter="brand_name"><option value="">All</option></select></th>
+          <th><select data-filter="generic_name"><option value="">All</option></select></th>
+          <th><select data-filter="product_code"><option value="">All</option></select></th>
+          <th><select data-filter="product_problem_flag"><option value="">All</option></select></th>
+          <th><select data-filter="adverse_event_flag"><option value="">All</option></select></th>
+          <th><select data-filter="product_problem_text"><option value="">All</option></select></th>
+          <th><select data-filter="patient_problem_text"><option value="">All</option></select></th>
+        </tr>
+      </thead>
+      <tbody>__DEVICE_EVENT_ROWS__</tbody>
+    </table>
+  </div>
+"""
+
+    device_enforcement_card = """
+  <div class="card">
+    <h3 class="title">openFDA: Device Enforcement Reports (Recalls)</h3>
+    <table id="device-enforcement-table">
+      <thead>
+        <tr>
+          <th data-sort="recall_number" title="Click to sort">Recall #</th>
+          <th data-sort="classification" title="Click to sort">Class</th>
+          <th data-sort="status" title="Click to sort">Status</th>
+          <th data-sort="report_date" title="Click to sort">Report Date</th>
+          <th data-sort="recall_initiation_date" title="Click to sort">Initiation</th>
+          <th data-sort="center_classification_date" title="Click to sort">Center Class Date</th>
+          <th data-sort="termination_date" title="Click to sort">Termination</th>
+          <th data-sort="recalling_firm" title="Click to sort">Recalling Firm</th>
+          <th data-sort="product_description" title="Click to sort">Product</th>
+          <th data-sort="reason_for_recall" title="Click to sort">Reason</th>
+          <th data-sort="product_code" title="Click to sort">Product Code</th>
+          <th data-sort="product_type" title="Click to sort">Product Type</th>
+          <th data-sort="distribution_pattern" title="Click to sort">Distribution</th>
+          <th data-sort="code_info" title="Click to sort">Code Info</th>
+          <th data-sort="city" title="Click to sort">City</th>
+          <th data-sort="state" title="Click to sort">State</th>
+          <th data-sort="country" title="Click to sort">Country</th>
+          <th data-sort="voluntary_mandated" title="Click to sort">Voluntary/Mandated</th>
+          <th data-sort="event_id" title="Click to sort">Event ID</th>
+        </tr>
+        <tr class="filters">
+          <th><select data-filter="recall_number"><option value="">All</option></select></th>
+          <th><select data-filter="classification"><option value="">All</option></select></th>
+          <th><select data-filter="status"><option value="">All</option></select></th>
+          <th><select data-filter="report_date"><option value="">All</option></select></th>
+          <th><select data-filter="recall_initiation_date"><option value="">All</option></select></th>
+          <th><select data-filter="center_classification_date"><option value="">All</option></select></th>
+          <th><select data-filter="termination_date"><option value="">All</option></select></th>
+          <th><select data-filter="recalling_firm"><option value="">All</option></select></th>
+          <th><select data-filter="product_description"><option value="">All</option></select></th>
+          <th><select data-filter="reason_for_recall"><option value="">All</option></select></th>
+          <th><select data-filter="product_code"><option value="">All</option></select></th>
+          <th><select data-filter="product_type"><option value="">All</option></select></th>
+          <th><select data-filter="distribution_pattern"><option value="">All</option></select></th>
+          <th><select data-filter="code_info"><option value="">All</option></select></th>
+          <th><select data-filter="city"><option value="">All</option></select></th>
+          <th><select data-filter="state"><option value="">All</option></select></th>
+          <th><select data-filter="country"><option value="">All</option></select></th>
+          <th><select data-filter="voluntary_mandated"><option value="">All</option></select></th>
+          <th><select data-filter="event_id"><option value="">All</option></select></th>
+        </tr>
+      </thead>
+      <tbody>__DEVICE_ENFORCEMENT_ROWS__</tbody>
+    </table>
+  </div>
+"""
+
+    device_recall_card = """
+  <div class="card">
+    <h3 class="title">openFDA: Device Recall Reports</h3>
+    <table id="device-recall-table">
+      <thead>
+        <tr>
+          <th data-sort="recall_number" title="Click to sort">Recall #</th>
+          <th data-sort="status" title="Click to sort">Status</th>
+          <th data-sort="report_date" title="Click to sort">Report Date</th>
+          <th data-sort="recall_initiation_date" title="Click to sort">Initiation</th>
+          <th data-sort="termination_date" title="Click to sort">Termination</th>
+          <th data-sort="recalling_firm" title="Click to sort">Recalling Firm</th>
+          <th data-sort="product_description" title="Click to sort">Product</th>
+          <th data-sort="reason_for_recall" title="Click to sort">Reason</th>
+          <th data-sort="product_code" title="Click to sort">Product Code</th>
+          <th data-sort="product_type" title="Click to sort">Product Type</th>
+          <th data-sort="distribution_pattern" title="Click to sort">Distribution</th>
+          <th data-sort="code_info" title="Click to sort">Code Info</th>
+          <th data-sort="city" title="Click to sort">City</th>
+          <th data-sort="state" title="Click to sort">State</th>
+          <th data-sort="country" title="Click to sort">Country</th>
+          <th data-sort="voluntary_mandated" title="Click to sort">Voluntary/Mandated</th>
+          <th data-sort="event_id" title="Click to sort">Event ID</th>
+        </tr>
+        <tr class="filters">
+          <th><select data-filter="recall_number"><option value="">All</option></select></th>
+          <th><select data-filter="status"><option value="">All</option></select></th>
+          <th><select data-filter="report_date"><option value="">All</option></select></th>
+          <th><select data-filter="recall_initiation_date"><option value="">All</option></select></th>
+          <th><select data-filter="termination_date"><option value="">All</option></select></th>
+          <th><select data-filter="recalling_firm"><option value="">All</option></select></th>
+          <th><select data-filter="product_description"><option value="">All</option></select></th>
+          <th><select data-filter="reason_for_recall"><option value="">All</option></select></th>
+          <th><select data-filter="product_code"><option value="">All</option></select></th>
+          <th><select data-filter="product_type"><option value="">All</option></select></th>
+          <th><select data-filter="distribution_pattern"><option value="">All</option></select></th>
+          <th><select data-filter="code_info"><option value="">All</option></select></th>
+          <th><select data-filter="city"><option value="">All</option></select></th>
+          <th><select data-filter="state"><option value="">All</option></select></th>
+          <th><select data-filter="country"><option value="">All</option></select></th>
+          <th><select data-filter="voluntary_mandated"><option value="">All</option></select></th>
+          <th><select data-filter="event_id"><option value="">All</option></select></th>
+        </tr>
+      </thead>
+      <tbody>__DEVICE_RECALL_ROWS__</tbody>
+    </table>
+  </div>
+"""
+
+    device_reglist_card = """
+  <div class="card">
+    <h3 class="title">openFDA: Device Registration &amp; Listing</h3>
+    <table id="device-reglist-table">
+      <thead>
+        <tr>
+          <th data-sort="registration_number" title="Click to sort">Registration #</th>
+          <th data-sort="fei_number" title="Click to sort">FEI</th>
+          <th data-sort="registration_status_code" title="Click to sort">Status</th>
+          <th data-sort="facility_name" title="Click to sort">Facility</th>
+          <th data-sort="facility_city" title="Click to sort">City</th>
+          <th data-sort="facility_state_code" title="Click to sort">State</th>
+          <th data-sort="facility_iso_country_code" title="Click to sort">Country</th>
+          <th data-sort="owner_operator_number" title="Click to sort">Owner Op #</th>
+          <th data-sort="owner_operator_firm_name" title="Click to sort">Owner Operator</th>
+          <th data-sort="establishment_type" title="Click to sort">Establishment Type</th>
+          <th data-sort="proprietary_name" title="Click to sort">Proprietary Name</th>
+          <th data-sort="product_code" title="Click to sort">Product Code(s)</th>
+          <th data-sort="k_number" title="Click to sort">510(k)</th>
+          <th data-sort="pma_number" title="Click to sort">PMA</th>
+          <th data-sort="device_class" title="Click to sort">Class</th>
+          <th data-sort="regulation_number" title="Click to sort">Regulation #</th>
+        </tr>
+        <tr class="filters">
+          <th><select data-filter="registration_number"><option value="">All</option></select></th>
+          <th><select data-filter="fei_number"><option value="">All</option></select></th>
+          <th><select data-filter="registration_status_code"><option value="">All</option></select></th>
+          <th><select data-filter="facility_name"><option value="">All</option></select></th>
+          <th><select data-filter="facility_city"><option value="">All</option></select></th>
+          <th><select data-filter="facility_state_code"><option value="">All</option></select></th>
+          <th><select data-filter="facility_iso_country_code"><option value="">All</option></select></th>
+          <th><select data-filter="owner_operator_number"><option value="">All</option></select></th>
+          <th><select data-filter="owner_operator_firm_name"><option value="">All</option></select></th>
+          <th><select data-filter="establishment_type"><option value="">All</option></select></th>
+          <th><select data-filter="proprietary_name"><option value="">All</option></select></th>
+          <th><select data-filter="product_code"><option value="">All</option></select></th>
+          <th><select data-filter="k_number"><option value="">All</option></select></th>
+          <th><select data-filter="pma_number"><option value="">All</option></select></th>
+          <th><select data-filter="device_class"><option value="">All</option></select></th>
+          <th><select data-filter="regulation_number"><option value="">All</option></select></th>
+        </tr>
+      </thead>
+      <tbody>__DEVICE_REGLIST_ROWS__</tbody>
+    </table>
+  </div>
+"""
+
     init_calls = []
     if show_drug_approved:
         init_calls.append("  initTable('drugs-table');")
@@ -593,6 +957,14 @@ def _render_html(
         init_calls.append("  initTable('shortages-table');")
     if show_device_approved:
         init_calls.append("  initTable('devices-table');")
+    if show_device_adverse_events:
+        init_calls.append("  initTable('device-events-table');")
+    if show_device_enforcements:
+        init_calls.append("  initTable('device-enforcement-table');")
+    if show_device_recalls:
+        init_calls.append("  initTable('device-recall-table');")
+    if show_device_registrationlisting:
+        init_calls.append("  initTable('device-reglist-table');")
 
     html_tpl = """<!doctype html>
 <html>
@@ -627,7 +999,7 @@ tr.filters select {
 <body>
 <header><strong>IND __COMPANY__</strong></header>
 <div class="container">
-__DRUG_CARD____DEVICE_CARD____NDC_CARD____ADVERSE_CARD____ENFORCEMENT_CARD____LABEL_CARD____SHORTAGES_CARD__  
+__DRUG_CARD____DEVICE_CARD____DEVICE_EVENT_CARD____NDC_CARD____ADVERSE_CARD____ENFORCEMENT_CARD____LABEL_CARD____SHORTAGES_CARD____DEVICE_ENFORCEMENT_CARD____DEVICE_RECALL_CARD____DEVICE_REGLIST_CARD__ 
 </div>
 <script>
 (function() {
@@ -777,6 +1149,10 @@ __INIT_CALLS__
         .replace("__LABEL_CARD__", label_card if show_drug_labels else "")
         .replace("__SHORTAGES_CARD__", shortages_card if show_drug_shortages else "")
         .replace("__DEVICE_CARD__", device_card if show_device_approved else "")
+        .replace("__DEVICE_EVENT_CARD__", device_event_card if show_device_adverse_events else "")
+        .replace("__DEVICE_ENFORCEMENT_CARD__", device_enforcement_card if show_device_enforcements else "")
+        .replace("__DEVICE_RECALL_CARD__", device_recall_card if show_device_recalls else "")
+        .replace("__DEVICE_REGLIST_CARD__", device_reglist_card if show_device_registrationlisting else "")
         .replace("__DRUGS_ROWS__", drugs_rows)
         .replace("__NDC_ROWS__", ndc_rows)
         .replace("__ADVERSE_ROWS__", adverse_rows)
@@ -784,6 +1160,10 @@ __INIT_CALLS__
         .replace("__LABEL_ROWS__", label_rows)
         .replace("__SHORTAGES_ROWS__", shortages_rows)
         .replace("__DEVICES_ROWS__", devices_rows)
+        .replace("__DEVICE_EVENT_ROWS__", device_event_rows)
+        .replace("__DEVICE_ENFORCEMENT_ROWS__", device_enforcement_rows)
+        .replace("__DEVICE_RECALL_ROWS__", device_recall_rows)
+        .replace("__DEVICE_REGLIST_ROWS__", device_reglist_rows)
         .replace("__INIT_CALLS__", "\n".join(init_calls))
     )
 
@@ -833,14 +1213,25 @@ def _run(**kwargs) -> None:
     drug_enforcement_dir = drug_dir / "Enforcement"
     drug_labeling_dir = drug_dir / "Labeling"
     drug_shortages_dir = drug_dir / "Shortages"
+
     device_approved_dir = device_dir / "Approved"
+    device_adverse_dir = device_dir / "Adverse Events"
+    device_enforcement_dir = device_dir / "Enforcement"
+    device_recalls_dir = device_dir / "Recalls"
+    device_registrationlisting_dir = device_dir / "Registration Listing"
+
     mkdir(drug_approved_dir)
     mkdir(drug_ndc_dir)
     mkdir(drug_adverse_dir)
     mkdir(drug_enforcement_dir)
     mkdir(drug_labeling_dir)
     mkdir(drug_shortages_dir)
+
     mkdir(device_approved_dir)
+    mkdir(device_adverse_dir)
+    mkdir(device_enforcement_dir)
+    mkdir(device_recalls_dir)
+    mkdir(device_registrationlisting_dir)
 
     # File paths
     ## Company level
@@ -875,6 +1266,22 @@ def _run(**kwargs) -> None:
     device_approved_csv_path = device_approved_dir / f"Approved.csv"
     device_approved_json_path = device_approved_dir / f"Approved.json"
     
+    device_adverse_html_path = device_dir / "Adverse Events.html"
+    device_adverse_csv_path = device_adverse_dir / "Adverse Events.csv"
+    device_adverse_json_path = device_adverse_dir / "Adverse Events.json"
+
+    device_enforcement_html_path = device_dir / "Enforcement.html"
+    device_enforcement_csv_path = device_enforcement_dir / "Enforcement.csv"
+    device_enforcement_json_path = device_enforcement_dir / "Enforcement.json"
+
+    device_recalls_html_path = device_dir / "Recalls.html"
+    device_recalls_csv_path = device_recalls_dir / "Recalls.csv"
+    device_recalls_json_path = device_recalls_dir / "Recalls.json"
+
+    device_registrationlisting_html_path = device_dir / "Registration Listing.html"
+    device_registrationlisting_csv_path = device_registrationlisting_dir / "Registration Listing.csv"
+    device_registrationlisting_json_path = device_registrationlisting_dir / "Registration Listing.json"
+
     # Ensure the icon exists in both drug/device subfolders and link to it from the HTML
     with pkg_resources.path(icon_pkg, "fda.svg") as svg_path:
         shutil.copy(svg_path, drug_approved_dir / "fda.svg")
@@ -884,6 +1291,10 @@ def _run(**kwargs) -> None:
         shutil.copy(svg_path, drug_labeling_dir / "fda.svg")
         shutil.copy(svg_path, drug_shortages_dir / "fda.svg")
         shutil.copy(svg_path, device_approved_dir / "fda.svg")
+        shutil.copy(svg_path, device_adverse_dir / "fda.svg")
+        shutil.copy(svg_path, device_enforcement_dir / "fda.svg")
+        shutil.copy(svg_path, device_recalls_dir / "fda.svg")
+        shutil.copy(svg_path, device_registrationlisting_dir / "fda.svg")
 
     # Write JSON, CSV, and HTML
     ## Drug
@@ -986,6 +1397,62 @@ def _run(**kwargs) -> None:
     device_approved_html = _render_html(intel, icon_href=str(device_approved_dir / "fda.svg"), show_device_approved=True)
     device_approved_html_path.write_text(device_approved_html, encoding="utf-8")
 
+    ### Adverse Events
+    device_adverse_json = {
+        "company": intel.get("company", args.company),
+        "device_adverse_events": intel.get("device_adverse_events") or [],
+    }
+    device_adverse_json_path.write_text(json.dumps(device_adverse_json, indent=2), encoding="utf-8")
+    _write_device_events_csv(intel.get("device_adverse_events") or [], device_adverse_csv_path)
+    device_adverse_html = _render_html(
+        intel,
+        icon_href=str(device_adverse_dir / "fda.svg"),
+        show_device_adverse_events=True,
+    )
+    device_adverse_html_path.write_text(device_adverse_html, encoding="utf-8")
+
+    ### Enforcement
+    device_enforcement_json = {
+        "company": intel.get("company", args.company),
+        "device_enforcements": intel.get("device_enforcements") or [],
+    }
+    device_enforcement_json_path.write_text(json.dumps(device_enforcement_json, indent=2), encoding="utf-8")
+    _write_device_enforcements_csv(intel.get("device_enforcements") or [], device_enforcement_csv_path)
+    device_enforcement_html = _render_html(
+        intel,
+        icon_href=str(device_enforcement_dir / "fda.svg"),
+        show_device_enforcements=True,
+    )
+    device_enforcement_html_path.write_text(device_enforcement_html, encoding="utf-8")  
+
+    ### Recalls
+    device_recalls_json = {
+        "company": intel.get("company", args.company),
+        "device_recalls": intel.get("device_recalls") or [],
+    }
+    device_recalls_json_path.write_text(json.dumps(device_recalls_json, indent=2), encoding="utf-8")
+    _write_device_recalls_csv(intel.get("device_recalls") or [], device_recalls_csv_path)
+    device_recalls_html = _render_html(
+        intel,
+        icon_href=str(device_recalls_dir / "fda.svg"),
+        show_device_recalls=True,
+    )
+    device_recalls_html_path.write_text(device_recalls_html, encoding="utf-8")
+
+    ### Registration Listing
+    device_registrationlisting_json = {
+        "company": intel.get("company", args.company),
+        "device_registration_listing": intel.get("device_registration_listing") or [],
+    }
+    device_registrationlisting_json_path.write_text(json.dumps(device_registrationlisting_json, indent=2), encoding="utf-8")
+    _write_device_registrationlisting_csv(intel.get("device_registration_listing") or [], device_registrationlisting_csv_path)
+    device_registrationlisting_html = _render_html(
+        intel,
+        icon_href=str(device_registrationlisting_dir / "fda.svg"),
+        show_device_registrationlisting=True,
+    )
+    device_registrationlisting_html_path.write_text(device_registrationlisting_html, encoding="utf-8")
+
     # Create a per-company HTML index that previews all generated HTML in subdirectories
     company_index_path = make_html_index(
         dir=data_dir,
@@ -1027,6 +1494,23 @@ def _run(**kwargs) -> None:
     print(f"Wrote {device_approved_csv_path}")
     print(f"Wrote {device_approved_json_path}")
     print(f"Wrote {device_approved_html_path}")
+
+    print(f"Wrote {device_adverse_csv_path}")
+    print(f"Wrote {device_adverse_json_path}")
+    print(f"Wrote {device_adverse_html_path}")
+
+    print(f"Wrote {device_enforcement_csv_path}")
+    print(f"Wrote {device_enforcement_json_path}")
+    print(f"Wrote {device_enforcement_html_path}")
+
+    print(f"Wrote {device_recalls_csv_path}")
+    print(f"Wrote {device_recalls_json_path}")
+    print(f"Wrote {device_recalls_html_path}")
+
+    print(f"Wrote {device_registrationlisting_csv_path}")
+    print(f"Wrote {device_registrationlisting_json_path}")
+    print(f"Wrote {device_registrationlisting_html_path}")
+
     print(f"Wrote {company_index_path}")
 
     if args.auto_open:
