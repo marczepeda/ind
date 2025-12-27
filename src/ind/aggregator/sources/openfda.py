@@ -1,13 +1,7 @@
-from __future__ import annotations
-from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 import requests
-from ind.openfda.client import OpenFDAClient
-
-def _coerce_first(xs, default: str = "") -> str:
-    if isinstance(xs, list):
-        return xs[0] if xs else default
-    return xs or default
+from ...openfda.client import OpenFDAClient
+from ..utils import _coerce_first
 
 def _openfda_page(client: OpenFDAClient, params: Dict[str, Any]) -> Dict[str, Any]:
     try:
@@ -73,143 +67,6 @@ def _search_sponsor(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
 
     return out[:total]
 
-
-# Retrieve 510k devices for a company
-def _search_device_510k(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
-    client = OpenFDAClient()
-    q_company = company.upper()
-    # Common fields for company name in 510k records
-    query = f'applicant:"{q_company}" OR manufacturer_name:"{q_company}"'
-    params = {"search": query, "limit": 100, "skip": 0}
-    try:
-        return _openfda_paged(client, "/device/510k.json", params, limit=limit)
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code == 404:
-            return []
-        raise
-
-
-# Retrieve PMA devices for a company
-def _search_device_pma(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
-    client = OpenFDAClient()
-    q_company = company.upper()
-    query = f'applicant:"{q_company}" OR manufacturer_name:"{q_company}"'
-    params = {"search": query, "limit": 100, "skip": 0}
-    try:
-        return _openfda_paged(client, "/device/pma.json", params, limit=limit)
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code == 404:
-            return []
-        raise
-
-# Retrieve NDC directory records for a company
-def _search_ndc_directory(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
-    client = OpenFDAClient()
-    q_company = company.upper()
-    # NDC records commonly include labeler_name; also try openfda.manufacturer_name for broader matches
-    query = f'labeler_name:"{q_company}" OR openfda.manufacturer_name:"{q_company}"'
-    params = {"search": query, "limit": 100, "skip": 0}
-    try:
-        return _openfda_paged(client, "/drug/ndc.json", params, limit=limit)
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code == 404:
-            return []
-        raise
-
-# Retrieve drug adverse event reports for a company
-def _search_drug_adverse_events(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
-    client = OpenFDAClient()
-    q_company = company.upper()
-
-    # FAERS fields are nested under patient.drug.openfda.*
-    # Manufacturer can appear as manufacturer_name; brand/generic are also in openfda.
-    # We bias toward manufacturer_name because it most directly matches company.
-    query = (
-        f'patient.drug.openfda.manufacturer_name:"{q_company}" '
-        f'OR patient.drug.openfda.sponsor_name:"{q_company}" '
-        f'OR patient.drug.openfda.application_number:"{q_company}"'
-    )
-
-    params = {"search": query, "limit": 100, "skip": 0}
-    try:
-        return _openfda_paged(client, "/drug/event.json", params, limit=limit)
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code == 404:
-            return []
-        raise
-
-# Retrieve drug enforcement (recall) reports for a company
-def _search_drug_enforcements(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
-    client = OpenFDAClient()
-    q_company = company.upper()
-
-    # Enforcement records commonly use recalling_firm; also sometimes manufacturer_name.
-    query = f'recalling_firm:"{q_company}" OR manufacturer_name:"{q_company}"'
-    params = {"search": query, "limit": 100, "skip": 0}
-    try:
-        return _openfda_paged(client, "/drug/enforcement.json", params, limit=limit)
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code == 404:
-            return []
-        raise
-
-# Retrieve drug shortages records for a company
-def _search_drug_shortages(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
-    client = OpenFDAClient()
-    q_company = company.upper()
-
-    # Drug shortages exposes `company_name` as a searchable field.
-    # We also include openfda.manufacturer_name as a fallback when present.
-    query = f'company_name:"{q_company}" OR openfda.manufacturer_name:"{q_company}"'
-    params = {"search": query, "limit": 100, "skip": 0}
-    try:
-        return _openfda_paged(client, "/drug/shortages.json", params, limit=limit)
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code == 404:
-            return []
-        raise
-
-# Flatten drug shortages records for CSV/table
-def _flatten_drug_shortages(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-
-    def join_list(x) -> str:
-        if isinstance(x, list):
-            return "; ".join([str(v) for v in x if v is not None and str(v) != ""])
-        return "" if x is None else str(x)
-
-    for r in records:
-        openfda = r.get("openfda") or {}
-        rows.append({
-            "package_ndc": r.get("package_ndc") or "",
-            "generic_name": r.get("generic_name") or "",
-            "proprietary_name": r.get("proprietary_name") or "",
-            "company_name": r.get("company_name") or "",
-            "status": r.get("status") or "",
-            "availability": r.get("availability") or "",
-            "shortage_reason": r.get("shortage_reason") or "",
-            "dosage_form": r.get("dosage_form") or "",
-            "therapeutic_category": join_list(r.get("therapeutic_category")),
-            "strength": join_list(r.get("strength")),
-            "presentation": r.get("presentation") or "",
-            "update_type": r.get("update_type") or "",
-            "update_date": r.get("update_date") or "",
-            "change_date": r.get("change_date") or "",
-            "initial_posting_date": r.get("initial_posting_date") or "",
-            "discontinued_date": r.get("discontinued_date") or "",
-            "resolved_note": r.get("resolved_note") or "",
-            "related_info": r.get("related_info") or "",
-            "related_info_link": r.get("related_info_link") or "",
-            "manufacturer_name": join_list(openfda.get("manufacturer_name")),
-        })
-
-    for row in rows:
-        for k, v in list(row.items()):
-            if v is None:
-                row[k] = ""
-
-    return rows
-
 def _flatten_approved_drugs(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Extract extended info for each drug approval record.
@@ -265,41 +122,19 @@ def _flatten_approved_drugs(records: List[Dict[str, Any]]) -> List[Dict[str, Any
             
     return rows
 
-
-# Flatten 510k records for CSV/table
-def _flatten_510k(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-    for r in records:
-        rows.append({
-            "k_number": r.get("k_number") or "",
-            "device_name": r.get("device_name") or "",
-            "applicant": r.get("applicant") or "",
-            "manufacturer_name": r.get("manufacturer_name") or "",
-            "product_code": r.get("product_code") or "",
-            "advisory_committee": r.get("advisory_committee") or "",
-            "clearance_type": r.get("clearance_type") or "",
-            "decision_code": r.get("decision_code") or "",
-            "decision_date": r.get("decision_date") or "",
-        })
-    return rows
-
-
-# Flatten PMA records for CSV/table
-def _flatten_pma(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-    for r in records:
-        rows.append({
-            "pma_number": r.get("pma_number") or "",
-            "trade_name": r.get("trade_name") or "",
-            "generic_name": r.get("generic_name") or "",
-            "applicant": r.get("applicant") or "",
-            "manufacturer_name": r.get("manufacturer_name") or "",
-            "product_code": r.get("product_code") or "",
-            "advisory_committee": r.get("advisory_committee") or "",
-            "decision_code": r.get("decision_code") or "",
-            "decision_date": r.get("decision_date") or "",
-        })
-    return rows
+# Retrieve NDC directory records for a company
+def _search_ndc_directory(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+    # NDC records commonly include labeler_name; also try openfda.manufacturer_name for broader matches
+    query = f'labeler_name:"{q_company}" OR openfda.manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/drug/ndc.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
 
 # Flatten NDC directory records for CSV/table
 def _flatten_ndc_directory(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -331,6 +166,28 @@ def _flatten_ndc_directory(records: List[Dict[str, Any]]) -> List[Dict[str, Any]
                 row[k] = ""
 
     return rows
+
+# Retrieve drug adverse event reports for a company
+def _search_drug_adverse_events(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+
+    # FAERS fields are nested under patient.drug.openfda.*
+    # Manufacturer can appear as manufacturer_name; brand/generic are also in openfda.
+    # We bias toward manufacturer_name because it most directly matches company.
+    query = (
+        f'patient.drug.openfda.manufacturer_name:"{q_company}" '
+        f'OR patient.drug.openfda.sponsor_name:"{q_company}" '
+        f'OR patient.drug.openfda.application_number:"{q_company}"'
+    )
+
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/drug/event.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
 
 # Flatten FAERS (drug adverse event) records for CSV/table
 def _flatten_drug_adverse_events(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -400,6 +257,21 @@ def _flatten_drug_adverse_events(records: List[Dict[str, Any]]) -> List[Dict[str
 
     return rows
 
+# Retrieve drug enforcement (recall) reports for a company
+def _search_drug_enforcements(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+
+    # Enforcement records commonly use recalling_firm; also sometimes manufacturer_name.
+    query = f'recalling_firm:"{q_company}" OR manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/drug/enforcement.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
 # Flatten drug enforcement (recall) records for CSV/table
 def _flatten_drug_enforcements(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
@@ -427,6 +299,63 @@ def _flatten_drug_enforcements(records: List[Dict[str, Any]]) -> List[Dict[str, 
             v = r.get(k)
             row[k] = "" if v is None else v
         rows.append(row)
+
+    return rows
+
+# Retrieve drug shortages records for a company
+def _search_drug_shortages(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+
+    # Drug shortages exposes `company_name` as a searchable field.
+    # We also include openfda.manufacturer_name as a fallback when present.
+    query = f'company_name:"{q_company}" OR openfda.manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/drug/shortages.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+# Flatten drug shortages records for CSV/table
+def _flatten_drug_shortages(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+
+    def join_list(x) -> str:
+        if isinstance(x, list):
+            return "; ".join([str(v) for v in x if v is not None and str(v) != ""])
+        return "" if x is None else str(x)
+
+    for r in records:
+        openfda = r.get("openfda") or {}
+        rows.append({
+            "package_ndc": r.get("package_ndc") or "",
+            "generic_name": r.get("generic_name") or "",
+            "proprietary_name": r.get("proprietary_name") or "",
+            "company_name": r.get("company_name") or "",
+            "status": r.get("status") or "",
+            "availability": r.get("availability") or "",
+            "shortage_reason": r.get("shortage_reason") or "",
+            "dosage_form": r.get("dosage_form") or "",
+            "therapeutic_category": join_list(r.get("therapeutic_category")),
+            "strength": join_list(r.get("strength")),
+            "presentation": r.get("presentation") or "",
+            "update_type": r.get("update_type") or "",
+            "update_date": r.get("update_date") or "",
+            "change_date": r.get("change_date") or "",
+            "initial_posting_date": r.get("initial_posting_date") or "",
+            "discontinued_date": r.get("discontinued_date") or "",
+            "resolved_note": r.get("resolved_note") or "",
+            "related_info": r.get("related_info") or "",
+            "related_info_link": r.get("related_info_link") or "",
+            "manufacturer_name": join_list(openfda.get("manufacturer_name")),
+        })
+
+    for row in rows:
+        for k, v in list(row.items()):
+            if v is None:
+                row[k] = ""
 
     return rows
 
@@ -469,6 +398,67 @@ def _flatten_drug_labels(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "spl_set_id": join_list(of.get("spl_set_id")),
         })
 
+    return rows
+
+# Retrieve 510k devices for a company
+def _search_device_510k(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+    # Common fields for company name in 510k records
+    query = f'applicant:"{q_company}" OR manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/device/510k.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+# Flatten 510k records for CSV/table
+def _flatten_510k(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for r in records:
+        rows.append({
+            "k_number": r.get("k_number") or "",
+            "device_name": r.get("device_name") or "",
+            "applicant": r.get("applicant") or "",
+            "manufacturer_name": r.get("manufacturer_name") or "",
+            "product_code": r.get("product_code") or "",
+            "advisory_committee": r.get("advisory_committee") or "",
+            "clearance_type": r.get("clearance_type") or "",
+            "decision_code": r.get("decision_code") or "",
+            "decision_date": r.get("decision_date") or "",
+        })
+    return rows
+
+# Retrieve PMA devices for a company
+def _search_device_pma(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = company.upper()
+    query = f'applicant:"{q_company}" OR manufacturer_name:"{q_company}"'
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/device/pma.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+# Flatten PMA records for CSV/table
+def _flatten_pma(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for r in records:
+        rows.append({
+            "pma_number": r.get("pma_number") or "",
+            "trade_name": r.get("trade_name") or "",
+            "generic_name": r.get("generic_name") or "",
+            "applicant": r.get("applicant") or "",
+            "manufacturer_name": r.get("manufacturer_name") or "",
+            "product_code": r.get("product_code") or "",
+            "advisory_committee": r.get("advisory_committee") or "",
+            "decision_code": r.get("decision_code") or "",
+            "decision_date": r.get("decision_date") or "",
+        })
     return rows
 
 # Retrieve device adverse event (MDR) reports for a company
@@ -768,81 +758,53 @@ def _flatten_device_registrationlisting(records: List[Dict[str, Any]]) -> List[D
 
     return rows
 
-@dataclass
-class CompanyOpenFDAIntel:
-    company: str
-    drugs_approved: List[Dict[str, Any]]
-    ndc_directory: List[Dict[str, Any]]
-    drug_adverse_events: List[Dict[str, Any]]
-    drug_enforcements: List[Dict[str, Any]]
-    drug_labels: List[Dict[str, Any]]
-    drug_shortages: List[Dict[str, Any]]
-    devices_510k: List[Dict[str, Any]]
-    devices_pma: List[Dict[str, Any]]
-    device_adverse_events: List[Dict[str, Any]]
-    device_enforcements: List[Dict[str, Any]]
-    device_recalls: List[Dict[str, Any]]
-    device_registrationlisting: List[Dict[str, Any]]
+def _search_transparency_crl(company: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    client = OpenFDAClient()
+    q_company = (company or "").strip()
+    if not q_company:
+        return []
 
-    def dict(self) -> Dict[str, Any]:
-        return asdict(self)
+    q_upper = q_company.upper()
 
-def build_company_intel(company: str, *, max_records: int = 1000) -> CompanyOpenFDAIntel:
-    """
-    OpenFDA-only aggregator:
-      - Looks up drugs approved for a given sponsor/company via /drug/drugsfda
-      - Looks up devices (510k and PMA) for a company via /device/510k and /device/pma
-      - Looks up NDC directory for a company via /drug/ndc
-      - Looks up Drug Adverse Events (FAERS) for a company via /drug/event
-      - Looks up Drug Enforcement Reports (Recalls) for a company via /drug/enforcement
-    """
-    records = _search_sponsor(company, limit=max_records)
-    drugs = _flatten_approved_drugs(records)
-
-    ndc_records = _search_ndc_directory(company, limit=max_records)
-    ndc_directory = _flatten_ndc_directory(ndc_records)
-
-    ae_records = _search_drug_adverse_events(company, limit=max_records)
-    drug_adverse_events = _flatten_drug_adverse_events(ae_records)
-
-    enf_records = _search_drug_enforcements(company, limit=max_records)
-    drug_enforcements = _flatten_drug_enforcements(enf_records)
-
-    label_records = _search_drug_labels(company, limit=max_records)
-    drug_labels = _flatten_drug_labels(label_records)
-
-    shortage_records = _search_drug_shortages(company, limit=max_records)
-    drug_shortages = _flatten_drug_shortages(shortage_records)
-
-    dev_510k_records = _search_device_510k(company, limit=max_records)
-    dev_pma_records = _search_device_pma(company, limit=max_records)
-    dev_510k = _flatten_510k(dev_510k_records)
-    dev_pma = _flatten_pma(dev_pma_records)
-
-    device_event_records = _search_device_adverse_events(company, limit=max_records)
-    device_adverse_events = _flatten_device_adverse_events(device_event_records)
-
-    dev_enf_records = _search_device_enforcements(company, limit=max_records)
-    device_enforcements = _flatten_device_enforcements(dev_enf_records)
-
-    dev_recall_records = _search_device_recalls(company, limit=max_records)
-    device_recalls = _flatten_device_recalls(dev_recall_records)
-
-    reglist_records = _search_device_registrationlisting(company, limit=max_records)
-    device_registrationlisting = _flatten_device_registrationlisting(reglist_records)
-
-    return CompanyOpenFDAIntel(
-        company=company,
-        drugs_approved=drugs,
-        devices_510k=dev_510k,
-        devices_pma=dev_pma,
-        ndc_directory=ndc_directory,
-        drug_adverse_events=drug_adverse_events,
-        drug_enforcements=drug_enforcements,
-        drug_labels=drug_labels,
-        drug_shortages=drug_shortages,
-        device_adverse_events=device_adverse_events,
-        device_enforcements=device_enforcements,
-        device_recalls=device_recalls,
-        device_registrationlisting=device_registrationlisting,
+    # CRL fields: company_name/company_rep/company_address plus full-text `text`.
+    # Use a broad OR query to increase match rate.
+    query = (
+        f'company_name:"{q_company}" OR company_name:"{q_upper}" '
+        f'OR company_rep:"{q_company}" OR company_rep:"{q_upper}" '
+        f'OR company_address:"{q_company}" OR company_address:"{q_upper}" '
+        f'OR text:"{q_company}"'
     )
+
+    params = {"search": query, "limit": 100, "skip": 0}
+    try:
+        return _openfda_paged(client, "/transparency/crl.json", params, limit=limit)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+
+
+def _flatten_transparency_crl(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+
+    keep = [
+        "file_name",
+        "application_number",
+        "letter_date",
+        "letter_type",
+        "approval_name",
+        "approval_title",
+        "approval_center",
+        "company_name",
+        "company_rep",
+        "company_address",
+    ]
+
+    for r in records:
+        row: Dict[str, Any] = {}
+        for k in keep:
+            v = r.get(k)
+            row[k] = "" if v is None else v
+        rows.append(row)
+
+    return rows
